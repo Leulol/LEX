@@ -1,14 +1,19 @@
-#This is the place where it recives the need of data from the models and send it to the database(sqlite) 
-#and retrives data
+# This is the place where it receives model requests and sends them to the SQLite database.
+# It also performs a small migration if an older table schema is found.
 
+import os
 import sqlite3
 
-conn = sqlite3.connect('tasks.db')#i am building a bridge b/n the pyhton code(models/fast api) and the database
+BASE_DIR = os.path.dirname(__file__)
+DB_PATH = os.path.join(BASE_DIR, 'tasks.db')
 
-cursor = conn.cursor()#let's you send commands like a taxi going in the database and to the models
+conn = sqlite3.connect(DB_PATH)
+cursor = conn.cursor()
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
               (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
+                title TEXT NOT NULL,
                 completed BOOLEAN NOT NULL)''')
-conn.commit()#save the changes to the database
+conn.commit()
+
+

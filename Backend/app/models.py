@@ -1,5 +1,7 @@
-# This is the mind where all the logics are made to retrieve the data from the database and send it to the frontend
+#This is where the Task class is defined, which represents a task in the to-do list. It includes methods for adding, retrieving, and deleting tasks from the SQLite database.
+#The Error handling is done using try-except blocks to catch any database errors that may occur during the operations. The class also includes validation to ensure that the title of the task is not empty.
 import database
+import sqlite3
 
 class Task():
     def __init__(self, id=None, title=None, completed=False):
@@ -14,45 +16,106 @@ class Task():
         return self.__str__()
     
     def add_task(self):
-        database.cursor.execute(
+        # Validation
+        if not self.title or self.title.strip() == "":
+            raise ValueError("Title cannot be empty")
+
+        self.title = self.title.strip()
+
+        try:
+            database.cursor.execute(
             "INSERT INTO tasks (title, completed) VALUES (?, ?)",
             (self.title, int(self.completed))
         )
-        database.conn.commit()
-        self.id = database.cursor.lastrowid
+            database.conn.commit()
+
+            self.id = database.cursor.lastrowid
+        except sqlite3.Error as e:
+            print(f"Error occurred while adding task: {e}")
+            return None
         return self
+    
+    def update_task(self, id, title=None, completed=None):
+        """
+        Updates a task in the database by ID.
+        Only replaces fields that are provided.
+        Returns the updated Task object or None if not found/error.
+        """
+        # Step 1: Fetch current task
+        task = self.get_task(id)
+        if not task:
+            print(f"Task {id} not found")
+            return None
+
+        # Step 2: Prepare new values
+        new_title = title.strip() if title is not None and title.strip() != "" else task.title
+        if title is not None and title.strip() == "":
+            print("Title cannot be empty")
+            return None
+
+        new_completed = bool(completed) if completed is not None else task.completed
+
+        # Step 3: Update in database
+        try:
+            database.cursor.execute(
+                "UPDATE tasks SET title = ?, completed = ? WHERE id = ?",
+                (new_title, int(new_completed), id)
+            )
+            database.conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error occurred while updating task: {e}")
+            return None
+
+        # Step 4: Return updated task
+        return self.get_task(id)
+
 
     def get_task(self, id):
-        database.cursor.execute(
-            "SELECT id, title, completed FROM tasks WHERE id = ?",
-            (id,)
-        )
-        row = database.cursor.fetchone()
+        try:
+            database.cursor.execute(
+                    "SELECT id, title, completed FROM tasks WHERE id = ?",
+                    (id,)
+                )
+            row = database.cursor.fetchone()
+        except sqlite3.Error as e:
+            print(f"Error occurred while fetching task: {e}")
+            return None
+
         if row:
             return Task(id=row[0], title=row[1], completed=bool(row[2]))
-        else:
-            return print(f"Task {id} not found")
+        return None
     
     def get_all_tasks(self):
-        database.cursor.execute("SELECT id, title, completed FROM tasks")
-        rows = database.cursor.fetchall()
+        try:
+            database.cursor.execute("SELECT id, title, completed FROM tasks")
+            rows = database.cursor.fetchall()
+
+        except sqlite3.Error as e:
+            print(f"Error occurred while fetching all tasks: {e}")
+            return []
+
         return [Task(id=row[0], title=row[1], completed=bool(row[2])) for row in rows]
 
     def delete_task(self, id):
-        database.cursor.execute(
-            "DELETE FROM tasks WHERE id = ?",  # the id in the bracket will go into the ?
-            (id,)
-        )
-        database.conn.commit()  # saves the changes in the database
-        if database.cursor.rowcount > 0:#make sure if there is a task or not
-            return print(f"Task {id} deleted")
-        else:
-            return print(f"Task {id} not found")
+        try:
+            database.cursor.execute(
+                "DELETE FROM tasks WHERE id = ?",
+                (id,)
+            )
+            database.conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error occurred while deleting task: {e}")
+            return False
 
-# task = Task(title="Test task", completed=False)
-# task.add_task()
-print(str(Task().get_all_tasks()))
-Task().delete_task(1)
-print(str(Task().get_all_tasks()))
+        return database.cursor.rowcount > 0
 
 
+if __name__ == "__main__":
+    t1 = Task(title="Task 1").add_task()
+    t2 = Task(title="Task 2").add_task()
+
+    print(Task().get_all_tasks())
+
+    Task().delete_task(t1.id)
+
+    print(Task().get_all_tasks())
