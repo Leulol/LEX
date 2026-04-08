@@ -2,15 +2,18 @@
 #The Error handling is done using try-except blocks to catch any database errors that may occur during the operations. The class also includes validation to ensure that the title of the task is not empty.
 import database
 import sqlite3
+from datetime import datetime
 
 class Task():
-    def __init__(self, id=None, title=None, completed=False):
+    def __init__(self, id=None, title=None, completed=False, created_at=None, updated_at=None):
         self.id = id
         self.title = title
         self.completed = completed
+        self.created_at = created_at
+        self.updated_at = updated_at
 
     def __str__(self):
-        return f"Task(id={self.id}, title='{self.title}', completed={self.completed})"
+        return f"Task(id={self.id}, title='{self.title}', completed={self.completed}, created_at={self.created_at}, updated_at={self.updated_at})"
     
     def __repr__(self):
         return self.__str__()
@@ -21,15 +24,17 @@ class Task():
             raise ValueError("Title cannot be empty")
 
         self.title = self.title.strip()
-
+        now = datetime.now().isoformat()
+        created_at = now
+        updated_at = now
         try:
             database.cursor.execute(
-            "INSERT INTO tasks (title, completed) VALUES (?, ?)",
-            (self.title, int(self.completed))
+            "INSERT INTO tasks (title, completed, created_at, updated_at) VALUES (?, ?, ?, ?)",
+            (self.title, int(self.completed), created_at, updated_at)
         )
             database.conn.commit()
-
             self.id = database.cursor.lastrowid
+
         except sqlite3.Error as e:
             print(f"Error occurred while adding task: {e}")
             return None
@@ -54,14 +59,18 @@ class Task():
             return None
 
         new_completed = bool(completed) if completed is not None else task.completed
+        now = datetime.now().isoformat()
+        self.update_task = now
 
         # Step 3: Update in database
         try:
             database.cursor.execute(
-                "UPDATE tasks SET title = ?, completed = ? WHERE id = ?",
-                (new_title, int(new_completed), id)
+                "UPDATE tasks SET title = ?, completed = ?, updated_at = ? WHERE id = ?",
+                (new_title, int(new_completed), self.update_task, id)
             )
             database.conn.commit()
+            
+            
         except sqlite3.Error as e:
             print(f"Error occurred while updating task: {e}")
             return None
@@ -73,7 +82,7 @@ class Task():
     def get_task(self, id):
         try:
             database.cursor.execute(
-                    "SELECT id, title, completed FROM tasks WHERE id = ?",
+                    "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
                     (id,)
                 )
             row = database.cursor.fetchone()
@@ -82,19 +91,19 @@ class Task():
             return None
 
         if row:
-            return Task(id=row[0], title=row[1], completed=bool(row[2]))
+            return Task(id=row[0], title=row[1], completed=bool(row[2]), created_at=row[3], updated_at=row[4])
         return None
     
     def get_all_tasks(self):
         try:
-            database.cursor.execute("SELECT id, title, completed FROM tasks")
+            database.cursor.execute("SELECT id, title, completed, created_at, updated_at FROM tasks")
             rows = database.cursor.fetchall()
 
         except sqlite3.Error as e:
             print(f"Error occurred while fetching all tasks: {e}")
             return []
 
-        return [Task(id=row[0], title=row[1], completed=bool(row[2])) for row in rows]
+        return [Task(id=row[0], title=row[1], completed=bool(row[2]), created_at=row[3], updated_at=row[4]) for row in rows]
 
     def delete_task(self, id):
         try:
@@ -108,14 +117,15 @@ class Task():
             return False
 
         return database.cursor.rowcount > 0
+    
+    def delete_all_tasks(self):
+        try:
+            database.cursor.execute("DELETE FROM tasks")
+            database.conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error occurred while deleting all tasks: {e}")
+            return False
+
+        return True
 
 
-if __name__ == "__main__":
-    t1 = Task(title="Task 1").add_task()
-    t2 = Task(title="Task 2").add_task()
-
-    print(Task().get_all_tasks())
-
-    Task().delete_task(t1.id)
-
-    print(Task().get_all_tasks())
