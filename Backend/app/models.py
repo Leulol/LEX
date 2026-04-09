@@ -60,13 +60,13 @@ class Task():
 
         new_completed = bool(completed) if completed is not None else task.completed
         now = datetime.now().isoformat()
-        self.update_task = now
+        self.updated_task = now
 
         # Step 3: Update in database
         try:
             database.cursor.execute(
                 "UPDATE tasks SET title = ?, completed = ?, updated_at = ? WHERE id = ?",
-                (new_title, int(new_completed), self.update_task, id)
+                (new_title, int(new_completed), self.updated_task, id)
             )
             database.conn.commit()
             
