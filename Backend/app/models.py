@@ -1,6 +1,4 @@
-#This is where the Task class is defined, which represents a task in the to-do list. It includes methods for adding, retrieving, and deleting tasks from the SQLite database.
-#The Error handling is done using try-except blocks to catch any database errors that may occur during the operations. The class also includes validation to ensure that the title of the task is not empty.
-import database
+#This is where the Task class is defined, which represents a task in the to-do list. 
 import sqlite3
 from datetime import datetime
 
