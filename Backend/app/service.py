@@ -25,6 +25,8 @@ def add_task(task):#the task must be declared using Task() before being passed t
         )
         database.conn.commit()
         task.id = database.cursor.lastrowid
+        task.created_at = created_at
+        task.updated_at = updated_at
 
     except sqlite3.Error as e:
         print(f"Error occurred while adding task: {e}")
