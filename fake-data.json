@@ -1,0 +1,8 @@
+{
+  "message": "This is fake data for fetch testing.",
+  "items": [
+    { "id": 1, "name": "Test Item A" },
+    { "id": 2, "name": "Test Item B" },
+    { "id": 3, "name": "Test Item C" }
+  ]
+}
