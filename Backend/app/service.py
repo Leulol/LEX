@@ -14,25 +14,33 @@ def add_task(task):#the task must be declared using Task() before being passed t
         raise ValueError("Title cannot be empty")
 
     task.title = task.title.strip()
-    now = datetime.now().isoformat()
-    created_at = now
-    updated_at = now
 
     try:
         database.cursor.execute(
-            "INSERT INTO tasks (title, completed, created_at, updated_at) VALUES (?, ?, ?, ?)",
-            (task.title, int(task.completed), created_at, updated_at)
+            "INSERT INTO tasks (title, completed) VALUES (?, ?)",
+            (task.title, int(task.completed))
         )
         database.conn.commit()
         task.id = database.cursor.lastrowid
-        task.created_at = created_at
-        task.updated_at = updated_at
+        database.cursor.execute(#Fetch the newly added task
+            "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
+            (task.id,))
+        row = database.cursor.fetchone()
+        if not row:
+            print(f"Error occurred while fetching newly added task with id {task.id}")
+            return None
+        return Task(
+            id=row[0],
+            title=row[1],
+            completed=bool(row[2]),
+            created_at=row[3],
+            updated_at=row[4]
+        )
 
     except sqlite3.Error as e:
         print(f"Error occurred while adding task: {e}")
         return None
 
-    return task
 
 
 def get_task(id):
