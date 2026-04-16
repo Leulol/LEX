@@ -3,10 +3,10 @@
 
 import os
 import sqlite3
+from .config import Config
 
 BASE_DIR = os.path.dirname(__file__)
-DB_NAME = os.getenv("DB_NAME", "tasks.db")
-DB_PATH = os.path.join(BASE_DIR, DB_NAME)
+DB_PATH = os.path.join(BASE_DIR, Config.DB_NAME)
 
 conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()

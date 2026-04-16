@@ -2,6 +2,7 @@
 import os
 from models import Task
 os.environ["DB_NAME"] = "test_tasks.db"  # Use a separate test database
+os.environ["DEBUG"] = "False"  # Enable debug mode for testing
 import service  # Import after setting the environment variable
 
 print("========== START TEST ==========")
