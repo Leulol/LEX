@@ -1,8 +1,8 @@
 import sqlite3
-from config import Config
-import database
-from models import Task
-from logger import logger
+from .config import Config
+from . import database
+from .models import Task
+from .logger import logger
 
 
 # ---------------- VALIDATION ---------------- #
