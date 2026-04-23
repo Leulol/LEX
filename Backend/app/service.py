@@ -126,6 +126,25 @@ def get_task(id):
         logger.error(f"Database error in get_task: {e}")
         return error_response("Database error")
 
+def search_task(title):
+    try:    
+        title = validate_title(title)
+        database.cursor.execute(
+            "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
+                (title,)
+        )
+        row = database.cursor.fetchone()
+        if not row:
+            logger.warning(f"Task {title} NOT Found")
+            return error_response("Task NOT Found")
+        return success_response(row_to_task(row))
+    except ValueError as ve:
+        logger.warning(f"Validation error in search_task: {ve}")
+        return error_response(str(ve)) 
+    except sqlite3.Error as e:
+        logger.error(f"Database error in search_task: {e}")
+        return error_response("Database error")
+
 
 
 def get_all_tasks(page=1, limit=10):

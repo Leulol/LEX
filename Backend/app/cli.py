@@ -1,10 +1,22 @@
 import argparse
-from .service import add_task, get_all_tasks, delete_task, delete_all_tasks, update_task
-from .models import Task
+import os
+os.environ["DB_NAME"] = "test_tasks.db"  # Use a separate test database
+os.environ["DEBUG"] = "False"  # Disable debug mode for testing
+import sys
+
+if __package__:
+    from .service import add_task, get_task, search_task, get_all_tasks, delete_task, delete_all_tasks, update_task
+    from .models import Task
+else:
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    from app.service import add_task, get_task, search_task, get_all_tasks, delete_task, delete_all_tasks, update_task
+    from app.models import Task
+
 try:
     from tabulate import tabulate
 except ModuleNotFoundError:
     tabulate = None
+
 
 
 parser = argparse.ArgumentParser(description="Task Manager CLI")
@@ -13,8 +25,20 @@ subparsers = parser.add_subparsers(dest="command")#is in the parser argument to 
 
 #FORMATE
 def formatter(result):
+    if isinstance(result, bool):
+        print(result)
+        return
+
+    if result is None:
+        print("No data")
+        return
+
     if isinstance(result, dict) and "tasks" in result:
         result = result["tasks"]
+
+    if not result:
+        print("No tasks found")
+        return
 
     if hasattr(result, "id"):
         data = [[result.id, result.title, result.completed]]
@@ -48,6 +72,17 @@ add_parser.add_argument("title")
 # LIST
 list_parser = subparsers.add_parser("list")
 
+#GET
+get_parser = subparsers.add_parser("get")
+get_parser.add_argument("id", type=int)
+
+#Search
+search_parser = subparsers.add_parser("search")
+search_parser.add_argument("title", type=str)
+
+# CLEAR
+clear_parser = subparsers.add_parser("clear")
+
 
 # DELETE
 delete_parser = subparsers.add_parser("delete")
@@ -61,6 +96,10 @@ update_parser.add_argument("title", type=str)
 #Completed
 completed_parser = subparsers.add_parser("completed")
 completed_parser.add_argument("id", type=int)
+
+#PENDING
+pending_parase = subparsers.add_parser("pending")
+pending_parase.add_argument("id", type=int)
 
 args = parser.parse_args()
 
@@ -76,6 +115,16 @@ if args.command == "add":
     if check(result):
         formatter(result["data"])
 
+elif args.command == "get":
+    result = get_task(id = args.id)
+    if check(result):
+        formatter(result["data"])
+
+elif args.command == "search":
+    result = search_task(title = args.title)
+    if check(result):
+        formatter(result["data"])
+
 elif args.command == "list":
     result = get_all_tasks()
     if check(result):
@@ -84,7 +133,7 @@ elif args.command == "list":
 elif args.command == "delete":
     result = delete_task(args.id)
     if check(result):
-        formatter(result["data"])
+        print("Task deleted successfully.")
 
 elif args.command == "update":
     result = update_task(id = args.id, title = args.title)
@@ -93,6 +142,16 @@ elif args.command == "update":
 
 elif args.command == "completed":
     result = update_task(id = args.id, completed = True)
+    if check(result):
+        formatter(result["data"])
+
+elif args.command == "clear":
+    result = delete_all_tasks()
+    if check(result):
+        print(result["data"])
+
+elif args.command == "pending":
+    result = update_task(id=args.id, completed=False)
     if check(result):
         formatter(result["data"])
 

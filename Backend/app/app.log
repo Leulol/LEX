@@ -1,0 +1,22 @@
+[2026-04-23 04:46:13,288] INFO — All tasks deleted
+[2026-04-23 04:46:13,289] INFO — Fetched page 1 with 0 tasks
+[2026-04-23 04:46:13,291] INFO — Task 10 created
+[2026-04-23 04:46:13,293] INFO — Task 11 created
+[2026-04-23 04:46:13,295] INFO — Task 12 created
+[2026-04-23 04:46:13,295] INFO — Fetched page 1 with 3 tasks
+[2026-04-23 04:46:13,299] INFO — Task 11 updated
+[2026-04-23 04:46:13,299] INFO — Fetched page 1 with 3 tasks
+[2026-04-23 04:46:13,302] INFO — Task 10 deleted
+[2026-04-23 04:46:13,302] INFO — Fetched page 1 with 2 tasks
+[2026-04-23 04:46:13,302] WARNING — Validation error in add_task: Title cannot be empty
+[2026-04-23 04:46:13,302] WARNING — Validation error in add_task: Title cannot be empty
+[2026-04-23 04:46:13,302] WARNING — Validation error in update_task: Title cannot be empty
+[2026-04-23 04:46:13,302] WARNING — Validation error in update_task: Title cannot be empty
+[2026-04-23 04:46:13,302] INFO — Fetched page 1 with 2 tasks
+[2026-04-23 04:46:13,303] WARNING — Task 9999 not found
+[2026-04-23 04:46:13,303] WARNING — Task 9999 not found for deletion
+[2026-04-23 04:46:13,303] WARNING — Task 9999 not found
+[2026-04-23 04:46:13,303] WARNING — Validation error in add_task: Title cannot be empty
+[2026-04-23 04:50:31,825] INFO — Fetched page 1 with 2 tasks
+[2026-04-23 04:50:31,941] WARNING — Task 9999 not found
+[2026-04-23 04:50:31,970] INFO — Task 477 created
