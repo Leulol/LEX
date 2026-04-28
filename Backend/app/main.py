@@ -5,7 +5,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-import service
+from . import service
 
 app = FastAPI()
 
@@ -42,7 +42,7 @@ def get_task(task_id: int):
 
 @app.post("/tasks")
 def create_task(task: TaskCreate):#from the Pydantic Schemas in line 15-25
-    from models import Task
+    from .models import Task
     new_task = Task(title=task.title)
     result = service.add_task(new_task)
     if not result:
