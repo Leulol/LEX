@@ -1,4 +1,5 @@
 .tm-shell {
+  background: #000;
   min-height: 100svh;
   display: grid;
   place-items: center;
@@ -126,7 +127,7 @@
 
 .tm-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 10px;
   align-items: center;
   padding: 12px;
@@ -143,6 +144,17 @@
   min-width: 66px;
 }
 
+.tm-editBtn {
+  background: rgb(94, 94, 249);
+  border-radius: 20px;
+  border-color: #0a30f0;
+  color: var(--text-h, #f3f4f6);
+  padding: 10px 10px;
+  min-width: 66px;
+}
+.tm-editBtn:hover {
+  background: color-mix(in srgb, var(--bg, #062af5) 75%, #f3f3f4 25%);
+}
 .tm-toggleBtn:hover {
   background: color-mix(in srgb, var(--bg, #16171d) 75%, #000 25%);
 }
@@ -195,10 +207,12 @@
   .tm-item {
     grid-template-columns: 1fr;
     align-items: stretch;
+    
   }
 
   .tm-toggleBtn,
-  .tm-dangerBtn {
+  .tm-dangerBtn,
+  .tm-editBtn {
     width: 100%;
   }
 

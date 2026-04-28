@@ -32,6 +32,20 @@ export default function App() {
     setTasks(tasks.filter((_, i) => i !== index));
   }
 
+  function deleteAllTasks() {
+    setTasks([]);
+  }
+  function deleteCompletedTasks() {
+    setTasks(tasks.filter((t) => !t.done));
+  }
+
+  function renameTask(index, newTitle) {
+    const updated = tasks.map((t, i) =>
+      i === index ? { ...t, title: newTitle } : t
+    );
+    setTasks(updated);
+  }
+
   // Toggle done state
   function toggle(index) {
     const updated = tasks.map((t, i) =>
@@ -48,6 +62,20 @@ export default function App() {
         <header className="tm-header">
           <div className="tm-titleRow">
             <h1 className="tm-title">Tasks</h1>
+            <button
+              className="tm-dangerBtn"
+              onClick={deleteCompletedTasks}
+              type="button"
+              title="Delete completed tasks"
+            >
+              Delete Completed
+            </button>
+            <button
+              className="tm-dangerBtn"
+              onClick={deleteAllTasks}
+              type="button"
+              title="Delete all tasks">Delete All</button>
+            
             <div className="tm-pills">
               <span className="tm-pill">
                 Total <b>{tasks.length}</b>
@@ -91,6 +119,17 @@ export default function App() {
               <span className={item.done ? "tm-text tm-textDone" : "tm-text"}>
                 {item.title}
               </span>
+              <button
+                className="tm-editBtn"
+                onClick={() => {
+                  const newTitle = prompt("Edit task title:", item.title);
+                  if (newTitle !== null) renameTask(index, newTitle);
+                }}
+                type="button"
+                title="Edit task"
+              >
+                Edit
+              </button>
 
               <button
                 className="tm-dangerBtn"
