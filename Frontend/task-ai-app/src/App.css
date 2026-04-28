@@ -1,5 +1,5 @@
 .tm-shell {
-  background: #000;
+  background: #f9f8f8;
   min-height: 100svh;
   display: grid;
   place-items: center;
@@ -12,7 +12,7 @@
   max-width: 100%;
   text-align: left;
   border: 1px solid var(--border, #2e303a);
-  border-radius: 12px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--bg, #16171d) 92%, #000 8%);
   box-shadow: var(--shadow, rgba(0, 0, 0, 0.4) 0 10px 15px -3px);
   padding: 18px;
@@ -34,6 +34,11 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.tm-titleBlock {
+  display: grid;
+  gap: 8px;
 }
 
 .tm-title {
@@ -69,11 +74,54 @@
   font-weight: 600;
 }
 
+.tm-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tm-seg {
+  display: inline-flex;
+  border-radius: 8px;
+  border: 1px solid var(--border, #2e303a);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg, #16171d) 86%, #000 14%);
+}
+
+.tm-segBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text, #9ca3af);
+  font-weight: 600;
+  line-height: 1;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tm-segBtn:hover {
+  background: color-mix(in srgb, var(--bg, #16171d) 76%, #000 24%);
+  color: var(--text-h, #f3f4f6);
+}
+
+.tm-segBtnActive {
+  background: color-mix(in srgb, var(--bg, #16171d) 70%, #000 30%);
+  color: var(--text-h, #f3f4f6);
+}
+
+.tm-topInputs {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .tm-inputRow {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
-  margin-bottom: 14px;
 }
 
 .tm-input {
@@ -96,25 +144,69 @@
   box-shadow: 0 0 0 4px var(--accent-bg, rgba(192, 132, 252, 0.15));
 }
 
-.tm-primaryBtn,
-.tm-toggleBtn,
-.tm-dangerBtn {
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 12px;
-  cursor: pointer;
-  font-weight: 600;
-  line-height: 1;
-  user-select: none;
+.tm-inputSearch {
+  padding-left: 12px;
 }
 
-.tm-primaryBtn {
+.tm-inputInline {
+  padding: 9px 10px;
+  border-radius: 8px;
+}
+
+.tm-btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+  background: transparent;
+  color: var(--text-h, #f3f4f6);
+}
+
+.tm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tm-btn:focus-visible,
+.tm-segBtn:focus-visible,
+.tm-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-bg, rgba(192, 132, 252, 0.18));
+}
+
+.tm-btnPrimary {
   background: var(--accent, #c084fc);
   color: #0b0b0f;
 }
 
-.tm-primaryBtn:hover {
+.tm-btnPrimary:hover:not(:disabled) {
   filter: brightness(0.96);
+}
+
+.tm-btnDanger {
+  border-color: color-mix(in srgb, #ef4444 55%, var(--border, #2e303a));
+  color: #ef4444;
+}
+
+.tm-btnDanger:hover:not(:disabled) {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+}
+
+.tm-btnGhost {
+  border-color: var(--border, #2e303a);
+  color: var(--text-h, #f3f4f6);
+}
+
+.tm-btnGhost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bg, #16171d) 75%, #000 25%);
+}
+
+.tm-btnTight {
+  padding: 9px 10px;
+  min-width: 68px;
 }
 
 .tm-list {
@@ -131,42 +223,9 @@
   gap: 10px;
   align-items: center;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border, #2e303a);
   background: color-mix(in srgb, var(--bg, #16171d) 84%, #000 16%);
-}
-
-.tm-toggleBtn {
-  background: transparent;
-  border-color: var(--border, #2e303a);
-  color: var(--text-h, #f3f4f6);
-  padding: 10px 10px;
-  min-width: 66px;
-}
-
-.tm-editBtn {
-  background: rgb(94, 94, 249);
-  border-radius: 20px;
-  border-color: #0a30f0;
-  color: var(--text-h, #f3f4f6);
-  padding: 10px 10px;
-  min-width: 66px;
-}
-.tm-editBtn:hover {
-  background: color-mix(in srgb, var(--bg, #062af5) 75%, #f3f3f4 25%);
-}
-.tm-toggleBtn:hover {
-  background: color-mix(in srgb, var(--bg, #16171d) 75%, #000 25%);
-}
-
-.tm-dangerBtn {
-  background: transparent;
-  border-color: color-mix(in srgb, #ef4444 55%, var(--border, #2e303a));
-  color: #ef4444;
-}
-
-.tm-dangerBtn:hover {
-  background: color-mix(in srgb, #ef4444 12%, transparent);
 }
 
 .tm-text {
@@ -185,7 +244,7 @@
 .tm-empty {
   margin-top: 14px;
   padding: 14px 12px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px dashed var(--border, #2e303a);
   color: var(--text, #9ca3af);
   text-align: center;
@@ -200,19 +259,16 @@
     grid-template-columns: 1fr;
   }
 
-  .tm-primaryBtn {
+  .tm-btnPrimary {
     width: 100%;
   }
 
   .tm-item {
     grid-template-columns: 1fr;
     align-items: stretch;
-    
   }
 
-  .tm-toggleBtn,
-  .tm-dangerBtn,
-  .tm-editBtn {
+  .tm-btn {
     width: 100%;
   }
 
