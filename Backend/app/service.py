@@ -71,20 +71,21 @@ def add_task(task):
         task.completed = validate_completed(task.completed)
 
         # Insert
-        database.cursor.execute(
-            "INSERT INTO tasks (title, completed) VALUES (?, ?)",
-            (task.title, int(task.completed))
-        )
-        database.conn.commit()
+        with database.db_lock:
+            database.cursor.execute(
+                "INSERT INTO tasks (title, completed) VALUES (?, ?)",
+                (task.title, int(task.completed))
+            )
+            database.conn.commit()
 
-        task_id = database.cursor.lastrowid
+            task_id = database.cursor.lastrowid
 
-        # Fetch inserted row
-        database.cursor.execute(
-            "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
-            (task_id,)
-        )
-        row = database.cursor.fetchone()
+            # Fetch inserted row
+            database.cursor.execute(
+                "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
+                (task_id,)
+            )
+            row = database.cursor.fetchone()
 
         if not row:
             logger.error(f"Failed to fetch newly created task {task_id}")
@@ -107,11 +108,12 @@ def get_task(id):
     try:
         validate_id(id)
 
-        database.cursor.execute(
-            "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
-            (id,)
-        )
-        row = database.cursor.fetchone()
+        with database.db_lock:
+            database.cursor.execute(
+                "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
+                (id,)
+            )
+            row = database.cursor.fetchone()
 
         if not row:
             logger.warning(f"Task {id} not found")
@@ -129,11 +131,12 @@ def get_task(id):
 def search_task(title):
     try:    
         title = validate_title(title)
-        database.cursor.execute(
-            "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
-                (title,)
-        )
-        row = database.cursor.fetchone()
+        with database.db_lock:
+            database.cursor.execute(
+                "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
+                    (title,)
+            )
+            row = database.cursor.fetchone()
         if not row:
             logger.warning(f"Task {title} NOT Found")
             return error_response("Task NOT Found")
@@ -153,15 +156,16 @@ def get_all_tasks(page=1, limit=10):
 
         offset = (page - 1) * limit
 
-        database.cursor.execute(
-            "SELECT id, title, completed, created_at, updated_at FROM tasks LIMIT ? OFFSET ?",
-            (limit, offset)
-        )
-        rows = database.cursor.fetchall()
+        with database.db_lock:
+            database.cursor.execute(
+                "SELECT id, title, completed, created_at, updated_at FROM tasks LIMIT ? OFFSET ?",
+                (limit, offset)
+            )
+            rows = database.cursor.fetchall()
 
-        # Optional: total count (useful for frontend later)
-        database.cursor.execute("SELECT COUNT(*) FROM tasks")
-        total = database.cursor.fetchone()[0]
+            # Optional: total count (useful for frontend later)
+            database.cursor.execute("SELECT COUNT(*) FROM tasks")
+            total = database.cursor.fetchone()[0]
 
         logger.info(f"Fetched page {page} with {len(rows)} tasks")
 
@@ -200,11 +204,12 @@ def update_task(id, title=None, completed=None):
         new_title = title if title is not None else task.title
         new_completed = completed if completed is not None else task.completed
 
-        database.cursor.execute(
-            "UPDATE tasks SET title = ?, completed = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (new_title, int(new_completed), id)
-        )
-        database.conn.commit()
+        with database.db_lock:
+            database.cursor.execute(
+                "UPDATE tasks SET title = ?, completed = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (new_title, int(new_completed), id)
+            )
+            database.conn.commit()
 
         logger.info(f"Task {id} updated")
         updated = get_task(id)
@@ -224,13 +229,15 @@ def delete_task(id):
     try:
         validate_id(id)
 
-        database.cursor.execute(
-            "DELETE FROM tasks WHERE id = ?",
-            (id,)
-        )
-        database.conn.commit()
+        with database.db_lock:
+            database.cursor.execute(
+                "DELETE FROM tasks WHERE id = ?",
+                (id,)
+            )
+            database.conn.commit()
+            rowcount = database.cursor.rowcount
 
-        if database.cursor.rowcount > 0:
+        if rowcount > 0:
             logger.info(f"Task {id} deleted")
             return success_response(True)
 
@@ -248,8 +255,9 @@ def delete_task(id):
 
 def delete_all_tasks():
     try:
-        database.cursor.execute("DELETE FROM tasks")
-        database.conn.commit()
+        with database.db_lock:
+            database.cursor.execute("DELETE FROM tasks")
+            database.conn.commit()
 
         logger.info("All tasks deleted")
 
@@ -257,4 +265,19 @@ def delete_all_tasks():
 
     except sqlite3.Error as e:
         logger.error(f"Database error in delete_all_tasks: {e}")
+        return error_response("Database error")
+
+def delete_completed_task():
+    try:
+        with database.db_lock:
+            database.cursor.execute(
+                "DELETE FROM tasks WHERE completed = true"                
+            )
+            database.conn.commit()
+        
+        logger.info("All Completed Tasks are Deleted")
+
+        return success_response("All Completed Tasks Deleted")
+    except sqlite3.Error as e:
+        logger.error(f"Database error in delete_completed_tasks: {e}")
         return error_response("Database error")

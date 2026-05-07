@@ -3,12 +3,17 @@
 
 import os
 import sqlite3
+import threading
 from .config import Config
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.path.join(BASE_DIR, Config.DB_NAME)
 
-conn = sqlite3.connect(DB_PATH)
+db_lock = threading.Lock()
+
+# FastAPI (and Uvicorn) can handle requests on different threads. Allow this
+# connection to be used across threads and guard operations with `db_lock`.
+conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 cursor = conn.cursor()
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS tasks

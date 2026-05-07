@@ -81,3 +81,10 @@ def delete_all_tasks():
     if not result:
         raise HTTPException(status_code=500, detail="Failed to delete all tasks")
     return {"detail": "All tasks deleted"}
+
+@app.delete("/tasks/completed")
+def delete_completed_tasks():
+    result = service.delete_completed_tasks()
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to delete completed tasks")
+    return {"detail": "All Completed Tasks Deleted"}

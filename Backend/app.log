@@ -1,0 +1,57 @@
+[2026-05-07 05:05:07,431] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:38:04,013] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:38:04,634] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:38:22,060] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:38:22,110] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:42:59,349] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:42:59,357] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:43:17,452] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:43:17,457] ERROR — Database error in get_all_tasks: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 15392 and this is thread id 10044.
+[2026-05-07 05:52:14,117] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:52:14,184] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:57:04,052] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:57:04,479] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:57:07,551] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:57:07,956] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:59:28,399] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 05:59:28,412] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 06:00:50,295] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 06:00:50,408] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 06:13:37,359] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 06:13:37,810] INFO — Fetched page 1 with 2 tasks
+[2026-05-07 06:14:20,964] INFO — Task 21 created
+[2026-05-07 18:09:45,277] INFO — Fetched page 1 with 3 tasks
+[2026-05-07 18:09:45,798] INFO — Fetched page 1 with 3 tasks
+[2026-05-07 18:22:26,993] INFO — Fetched page 1 with 3 tasks
+[2026-05-07 18:22:27,322] INFO — Fetched page 1 with 3 tasks
+[2026-05-07 18:39:26,366] INFO — Fetched page 1 with 3 tasks
+[2026-05-07 18:39:26,668] INFO — Fetched page 1 with 3 tasks
+[2026-05-07 18:39:37,192] INFO — All tasks deleted
+[2026-05-07 18:40:29,257] INFO — Fetched page 1 with 0 tasks
+[2026-05-07 18:40:29,281] INFO — Fetched page 1 with 0 tasks
+[2026-05-07 18:40:44,392] INFO — Task 22 created
+[2026-05-07 18:40:46,329] INFO — All tasks deleted
+[2026-05-07 18:40:52,699] INFO — Task 23 created
+[2026-05-07 18:40:54,014] INFO — Task 24 created
+[2026-05-07 18:40:55,311] INFO — Task 25 created
+[2026-05-07 18:40:58,490] INFO — All tasks deleted
+[2026-05-07 18:41:00,537] INFO — All tasks deleted
+[2026-05-07 18:49:48,054] INFO — Task 26 created
+[2026-05-07 18:49:49,229] INFO — Task 27 created
+[2026-05-07 18:49:50,020] INFO — Task 28 created
+[2026-05-07 18:49:50,779] INFO — Task 29 created
+[2026-05-07 18:49:52,598] INFO — Task 30 created
+[2026-05-07 18:49:55,716] INFO — All tasks deleted
+[2026-05-07 18:49:57,250] INFO — All tasks deleted
+[2026-05-07 18:50:03,362] INFO — All tasks deleted
+[2026-05-07 19:11:56,726] INFO — Task 31 created
+[2026-05-07 19:11:58,236] INFO — Task 32 created
+[2026-05-07 19:11:59,196] INFO — Task 33 created
+[2026-05-07 19:12:01,515] INFO — All tasks deleted
+[2026-05-07 19:12:05,019] INFO — All tasks deleted
+[2026-05-07 19:12:07,530] INFO — Task 34 created
+[2026-05-07 19:12:08,826] INFO — Task 35 created
+[2026-05-07 19:12:09,837] INFO — Task 36 created
+[2026-05-07 19:12:20,774] INFO — Task 37 created
+[2026-05-07 19:12:21,619] INFO — Task 38 created
+[2026-05-07 19:12:29,668] INFO — All tasks deleted

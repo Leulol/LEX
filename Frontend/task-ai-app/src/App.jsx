@@ -11,7 +11,7 @@ function normalizeStoredTasks(raw) {
 
   // Back-compat: older entries may have been { title, done } without id.
   return raw
-    .filter((t) => t && typeof t === "object")
+    .filter((t) => t && typeof t === "object")//filter the data by checking of it's true and an object
     .map((t) => ({
       id: typeof t.id === "string" ? t.id : makeId(),
       title: typeof t.title === "string" ? t.title : "",
@@ -36,15 +36,19 @@ export default function App() {
 
   // Load from localStorage on first render
   useEffect(() => {
-    let stored = [];
-    try {
-      stored = JSON.parse(localStorage.getItem("tasks"));
-    } catch {
-      stored = [];
+    async function loadTasks() {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/tasks");
+        const data = await response.json();
+        console.log(data)
+        setTasks(data.data.tasks || [])
+      }catch(error) {
+        console.error("Failed to Load Task: ", error);
+      }finally{
+        setHasLoaded(true)
+      }
     }
-
-    setTasks(normalizeStoredTasks(stored));
-    setHasLoaded(true);
+    loadTasks();
   }, []);
 
   // Save to localStorage after load is complete
@@ -54,39 +58,99 @@ export default function App() {
   }, [tasks, hasLoaded]);
 
   // Add task
-  function addTask() {
-    const nextTitle = title.trim();
-    if (nextTitle === "") return;
+  async function addTask() {
+  const nextTitle = title.trim();
+  if (nextTitle === "") return;
 
-    const newTask = {
-      id: makeId(),
-      title: nextTitle,
-      done: false,
-      createdAt: Date.now(),
-    };
+  try {
+    const response = await fetch("http://127.0.0.1:8000/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        title: nextTitle
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success === false) {
+      console.error(data.error);
+      return;
+    }
+
+    // backend returns created task
+    const newTask = data.data || data;
 
     setTasks((prev) => [...prev, newTask]);
+
     setTitle("");
     inputRef.current?.focus();
+
+  } catch (error) {
+    console.error("Failed to add task:", error);
+  }
   }
 
   // Delete task
-  function deleteTask(id) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));//Filter when the conditon is true it pass when the whole comndition is false it deletes it
+  async function deleteTask(id) {
+    try{
+      const response = await fetch("http://127.0.0.1:8000/tasks", {
+        method:"DELETE",
+      });
+
+      const data = await response.json()
+
+      if (data.success === false) {
+        console.error(data.error);
+        return;
+      }
+      setTasks((prev)=> prev.filter((t) => t.id !== id));
+    }catch(error){
+      console.error("Failed to Load Task: ", error)
+    }
   }
 
-  function deleteAllTasks() {
+
+
+  async function deleteAllTasks() {
     if (tasks.length === 0) return;
-    const ok = confirm("Delete all tasks?");
+    const ok = confirm("Delete all Tasks?")
     if (!ok) return;
-    setTasks([]);
+    try{
+      const response = await fetch("http://127.0.0.1:8000/tasks", {
+        method: "DELETE"
+      })
+      const data = response.json();
+      if (data.success === false){
+        console.error(data.error);
+        return;
+      }
+      setTasks([]);
+    }catch(error){
+      console.error("Failed to delete all tasks: ", error);
+    }
   }
-  function deleteCompletedTasks() {
-    const completed = tasks.reduce((n, t) => n + (t.done ? 1 : 0), 0);
+  async function deleteCompletedTasks() {
+    const completed = tasks.filter((t) => t.done).length
     if (completed === 0) return;
-    const ok = confirm(`Delete ${completed} completed task(s)?`);
+    const ok = confirm('Delete ${completed} completed task(s)?');
     if (!ok) return;
-    setTasks((prev) => prev.filter((t) => !t.done));
+
+    try{
+      const respose = await fetch("http://127.0.0.1:8000/tasks", {
+        method:"DELETE"
+      });
+      const data = await respose.json()
+      if (data.success === false){
+        console.error(data.error);
+        return;
+      }
+      setTasks((prev) => prev.filter((t) => !t.done));
+    }catch(error){
+      console.error("Failed to Delete Competed Task: ", error);
+    }
   }
 
   function startEditing(task) {
@@ -117,7 +181,7 @@ export default function App() {
     () => tasks.reduce((n, t) => n + (t.done ? 0 : 1), 0),//Reduce: If the function is true it will get it out 
     [tasks]
   );
-  const completedCount = tasks.length - remainingCount;
+  const completedCount = (tasks?.length || 0) - remainingCount;
 
   const visibleTasks = useMemo(() => {
     const q = query.trim().toLowerCase();
