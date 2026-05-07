@@ -59,7 +59,7 @@ def create_task(task: TaskCreate):#from the Pydantic Schemas in line 15-25
     return result
 
 
-@app.put("/tasks/{task_id}")
+@app.patch("/tasks/{task_id}")
 def update_task(task_id: int, task: TaskUpdate):
     updated_task = service.update_task(task_id, title=task.title, completed=task.completed)
     if not updated_task:

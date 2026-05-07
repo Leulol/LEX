@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
-function makeId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const API_BASE_URL = "http://127.0.0.1:8000";
+
+function normalizeApiTask(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = typeof raw.id === "number" ? raw.id : Number.parseInt(raw.id, 10);
+  if (!Number.isFinite(id)) return null;
+
+  return {
+    ...raw,
+    id,
+    title: typeof raw.title === "string" ? raw.title : "",
+    completed: Boolean(raw.completed),
+  };
 }
 
-function normalizeStoredTasks(raw) {
+function normalizeApiTasks(raw) {
   if (!Array.isArray(raw)) return [];
-
-  // Back-compat: older entries may have been { title, done } without id.
-  return raw
-    .filter((t) => t && typeof t === "object")//filter the data by checking of it's true and an object
-    .map((t) => ({
-      id: typeof t.id === "string" ? t.id : makeId(),
-      title: typeof t.title === "string" ? t.title : "",
-      done: Boolean(t.done),
-      createdAt: typeof t.createdAt === "number" ? t.createdAt : Date.now(),
-    }))
-    .filter((t) => t.title.trim() !== "");
+  return raw.map(normalizeApiTask).filter(Boolean);
 }
 
 export default function App() {
@@ -34,14 +34,13 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
 
-  // Load from localStorage on first render
+  // Load from backend on first render
   useEffect(() => {
     async function loadTasks() {
       try {
-        const response = await fetch("http://127.0.0.1:8000/tasks");
+        const response = await fetch(`${API_BASE_URL}/tasks`);
         const data = await response.json();
-        console.log(data)
-        setTasks(data.data.tasks || [])
+        setTasks(normalizeApiTasks(data?.data?.tasks));
       }catch(error) {
         console.error("Failed to Load Task: ", error);
       }finally{
@@ -63,7 +62,7 @@ export default function App() {
   if (nextTitle === "") return;
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/tasks", {
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -81,7 +80,11 @@ export default function App() {
     }
 
     // backend returns created task
-    const newTask = data.data || data;
+    const newTask = normalizeApiTask(data?.data || data);
+    if (!newTask) {
+      console.error("Unexpected task payload from server:", data);
+      return;
+    }
 
     setTasks((prev) => [...prev, newTask]);
 
@@ -95,8 +98,12 @@ export default function App() {
 
   // Delete task
   async function deleteTask(id) {
+    if (!Number.isFinite(id)) {
+      console.error("Can't delete task without a valid numeric id:", id);
+      return;
+    }
     try{
-      const response = await fetch("http://127.0.0.1:8000/tasks", {
+      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
         method:"DELETE",
       });
 
@@ -119,10 +126,10 @@ export default function App() {
     const ok = confirm("Delete all Tasks?")
     if (!ok) return;
     try{
-      const response = await fetch("http://127.0.0.1:8000/tasks", {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: "DELETE"
       })
-      const data = response.json();
+      const data = await response.json();
       if (data.success === false){
         console.error(data.error);
         return;
@@ -133,13 +140,13 @@ export default function App() {
     }
   }
   async function deleteCompletedTasks() {
-    const completed = tasks.filter((t) => t.done).length
+    const completed = tasks.filter((t) => t.completed).length
     if (completed === 0) return;
-    const ok = confirm('Delete ${completed} completed task(s)?');
+    const ok = confirm(`Delete ${completed} completed task(s)?`);
     if (!ok) return;
 
     try{
-      const respose = await fetch("http://127.0.0.1:8000/tasks", {
+      const respose = await fetch(`${API_BASE_URL}/tasks/completed`, {
         method:"DELETE"
       });
       const data = await respose.json()
@@ -147,13 +154,17 @@ export default function App() {
         console.error(data.error);
         return;
       }
-      setTasks((prev) => prev.filter((t) => !t.done));
+      setTasks((prev) => prev.filter((t) => !t.completed));
     }catch(error){
       console.error("Failed to Delete Competed Task: ", error);
     }
   }
 
   function startEditing(task) {
+    if (!task || !Number.isFinite(task.id)) {
+      console.error("Can't edit task without a valid numeric id:", task);
+      return;
+    }
     setEditingId(task.id);
     setEditingTitle(task.title);
   }
@@ -163,22 +174,90 @@ export default function App() {
     setEditingTitle("");
   }
 
-  function commitEditing(id) {
+  async function commitEditing(id) {
+    if (!Number.isFinite(id)) {
+      console.error("Can't update task without a valid numeric id:", id);
+      return;
+    }
     const next = editingTitle.trim();
     if (next === "") return; // don't allow empty titles
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, title: next } : t)));
-    cancelEditing();
+    try{
+      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+        method: "PATCH",
+        headers: {
+        "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: next,
+        })
+      });
+
+      const data = await response.json()
+      if (data?.success === false){
+        console.error(data.error);
+        return;
+      }
+      if (Array.isArray(data?.detail)) {
+        console.error("Update failed (validation):", data.detail);
+        return;
+      }
+      const updatedTask = normalizeApiTask(data?.data || data);
+      if (!updatedTask) {
+        console.error("Unexpected updated task payload from server:", data);
+        return;
+      }
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? updatedTask : t))
+      );
+      cancelEditing();
+    }catch(error){
+      console.error("Failed to update task:", error);
+    }
   }
 
-  // Toggle done state
-  function toggle(id) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
-    );
+  // Toggle completed state (persist to backend)
+  async function toggle(id) {
+    if (!Number.isFinite(id)) {
+      console.error("Can't toggle task without a valid numeric id:", id);
+      return;
+    }
+    const current = tasks.find((t) => t.id === id);
+    if (!current) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          completed: !current.completed,
+        }),
+      });
+
+      const data = await response.json();
+      if (data?.success === false) {
+        console.error(data.error);
+        return;
+      }
+      if (Array.isArray(data?.detail)) {
+        console.error("Toggle failed (validation):", data.detail);
+        return;
+      }
+      const updatedTask = normalizeApiTask(data?.data || data);
+      if (!updatedTask) {
+        console.error("Unexpected toggled task payload from server:", data);
+        return;
+      }
+      setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
+    } catch (error) {
+      console.error("Failed to toggle task:", error);
+    }
   }
 
   const remainingCount = useMemo(
-    () => tasks.reduce((n, t) => n + (t.done ? 0 : 1), 0),//Reduce: If the function is true it will get it out 
+    () => tasks.reduce((n, t) => n + (t.completed ? 0 : 1), 0),//Reduce: If the function is true it will get it out 
     [tasks]
   );
   const completedCount = (tasks?.length || 0) - remainingCount;
@@ -188,8 +267,8 @@ export default function App() {
 
     return tasks
       .filter((t) => {
-        if (filter === "active") return !t.done;
-        if (filter === "done") return t.done;
+        if (filter === "active") return !t.completed;
+        if (filter === "done") return t.completed;
         return true;
       })
       .filter((t) => (q === "" ? true : t.title.toLowerCase().includes(q)));
@@ -307,10 +386,10 @@ export default function App() {
                   className="tm-btn tm-btnGhost tm-btnTight"
                   onClick={() => toggle(item.id)}
                   type="button"
-                  aria-pressed={item.done}
-                  title={item.done ? "Mark as not done" : "Mark as done"}
+                  aria-pressed={item.completed}
+                  title={item.completed ? "Mark as not done" : "Mark as done"}
                 >
-                  {item.done ? "Undo" : "Done"}
+                  {item.completed ? "Undo" : "Done"}
                 </button>
 
                 {isEditing ? (
@@ -326,7 +405,7 @@ export default function App() {
                     }}
                   />
                 ) : (
-                  <span className={item.done ? "tm-text tm-textDone" : "tm-text"}>
+                  <span className={item.completed ? "tm-text tm-textDone" : "tm-text"}>
                     {item.title}
                   </span>
                 )}
@@ -345,8 +424,8 @@ export default function App() {
                     className="tm-btn tm-btnGhost tm-btnTight"
                     onClick={() => startEditing(item)}
                     type="button"
-                    title={item.done ? "Completed tasks can't be edited" : "Edit task"}
-                    disabled={item.done}
+                    title={item.completed ? "Completed tasks can't be edited" : "Edit task"}
+                    disabled={item.completed}
                   >
                     Edit
                   </button>

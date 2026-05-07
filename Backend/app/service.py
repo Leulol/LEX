@@ -267,7 +267,7 @@ def delete_all_tasks():
         logger.error(f"Database error in delete_all_tasks: {e}")
         return error_response("Database error")
 
-def delete_completed_task():
+def delete_completed_tasks():
     try:
         with database.db_lock:
             database.cursor.execute(
