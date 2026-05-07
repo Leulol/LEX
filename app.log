@@ -1,0 +1,25 @@
+[2026-05-06 18:22:07,482] INFO — All tasks deleted
+[2026-05-06 18:22:07,484] INFO — Fetched page 1 with 0 tasks
+[2026-05-06 18:22:07,498] INFO — Task 15 created
+[2026-05-06 18:22:07,512] INFO — Task 16 created
+[2026-05-06 18:22:07,518] INFO — Task 17 created
+[2026-05-06 18:22:07,519] INFO — Fetched page 1 with 3 tasks
+[2026-05-06 18:22:47,648] INFO — All tasks deleted
+[2026-05-06 18:22:47,650] INFO — Fetched page 1 with 0 tasks
+[2026-05-06 18:22:47,657] INFO — Task 18 created
+[2026-05-06 18:22:47,664] INFO — Task 19 created
+[2026-05-06 18:22:47,669] INFO — Task 20 created
+[2026-05-06 18:22:47,671] INFO — Fetched page 1 with 3 tasks
+[2026-05-06 18:22:47,682] INFO — Task 19 updated
+[2026-05-06 18:22:47,683] INFO — Fetched page 1 with 3 tasks
+[2026-05-06 18:22:47,689] INFO — Task 18 deleted
+[2026-05-06 18:22:47,690] INFO — Fetched page 1 with 2 tasks
+[2026-05-06 18:22:47,690] WARNING — Validation error in add_task: Title cannot be empty
+[2026-05-06 18:22:47,690] WARNING — Validation error in add_task: Title cannot be empty
+[2026-05-06 18:22:47,691] WARNING — Validation error in update_task: Title cannot be empty
+[2026-05-06 18:22:47,691] WARNING — Validation error in update_task: Title cannot be empty
+[2026-05-06 18:22:47,692] INFO — Fetched page 1 with 2 tasks
+[2026-05-06 18:22:47,693] WARNING — Task 9999 not found
+[2026-05-06 18:22:47,694] WARNING — Task 9999 not found for deletion
+[2026-05-06 18:22:47,694] WARNING — Task 9999 not found
+[2026-05-06 18:22:47,694] WARNING — Validation error in add_task: Title cannot be empty
