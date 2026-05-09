@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
+import TaskFilters from "./components/TaskFilters.jsx";
+import TaskList from "./components/TaskList.jsx";
+import TaskStats from "./components/TaskStats.jsx";
+import {
+  fetch_createTask,
+  fetch_deleteAllTasks,
+  fetch_deleteCompletedTasks,
+  fetch_deleteTask,
+  fetch_updateTask,
+  fetchTasks,
+} from "./services/taskApi.js";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 function normalizeApiTask(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -38,8 +48,8 @@ export default function App() {
   useEffect(() => {
     async function loadTasks() {
       try {
-        const response = await fetch(`${API_BASE_URL}/tasks`);
-        const data = await response.json();
+        const data = await fetchTasks();
+
         setTasks(normalizeApiTasks(data?.data?.tasks));
       }catch(error) {
         console.error("Failed to Load Task: ", error);
@@ -57,22 +67,12 @@ export default function App() {
   }, [tasks, hasLoaded]);
 
   // Add task
-  async function addTask() {
+  async function createTask() {
   const nextTitle = title.trim();
   if (nextTitle === "") return;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/tasks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        title: nextTitle
-      })
-    });
-
-    const data = await response.json();
+    const data = await fetch_createTask(`${nextTitle}`)
 
     if (data.success === false) {
       console.error(data.error);
@@ -103,11 +103,7 @@ export default function App() {
       return;
     }
     try{
-      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-        method:"DELETE",
-      });
-
-      const data = await response.json()
+      const data = await fetch_deleteTask(id);
 
       if (data.success === false) {
         console.error(data.error);
@@ -126,10 +122,7 @@ export default function App() {
     const ok = confirm("Delete all Tasks?")
     if (!ok) return;
     try{
-      const response = await fetch(`${API_BASE_URL}/tasks`, {
-        method: "DELETE"
-      })
-      const data = await response.json();
+      const data = await fetch_deleteAllTasks();
       if (data.success === false){
         console.error(data.error);
         return;
@@ -146,10 +139,7 @@ export default function App() {
     if (!ok) return;
 
     try{
-      const respose = await fetch(`${API_BASE_URL}/tasks/completed`, {
-        method:"DELETE"
-      });
-      const data = await respose.json()
+      const data = await fetch_deleteCompletedTasks();
       if (data.success === false){
         console.error(data.error);
         return;
@@ -182,17 +172,7 @@ export default function App() {
     const next = editingTitle.trim();
     if (next === "") return; // don't allow empty titles
     try{
-      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-        method: "PATCH",
-        headers: {
-        "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: next,
-        })
-      });
-
-      const data = await response.json()
+      const data = await fetch_updateTask(id, { title: next });
       if (data?.success === false){
         console.error(data.error);
         return;
@@ -226,17 +206,7 @@ export default function App() {
     if (!current) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          completed: !current.completed,
-        }),
-      });
-
-      const data = await response.json();
+      const data = await fetch_updateTask(id, { completed: !current.completed });
       if (data?.success === false) {
         console.error(data.error);
         return;
@@ -281,51 +251,15 @@ export default function App() {
           <div className="tm-titleRow">
             <div className="tm-titleBlock">
               <h1 className="tm-title">Tasks</h1>
-              <div className="tm-pills" aria-label="Task stats">
-                <span className="tm-pill">
-                  Total <b>{tasks.length}</b>
-                </span>
-                <span className="tm-pill">
-                  Remaining <b>{remainingCount}</b>
-                </span>
-                <span className="tm-pill">
-                  Done <b>{completedCount}</b>
-                </span>
-              </div>
+              <TaskStats
+                totalCount={tasks.length}
+                remainingCount={remainingCount}
+                completedCount={completedCount}
+              />
             </div>
 
             <div className="tm-toolbar" aria-label="Task controls">
-              <div className="tm-seg" role="tablist" aria-label="Filter tasks">
-                <button
-                  className={filter === "all" ? "tm-segBtn tm-segBtnActive" : "tm-segBtn"}
-                  onClick={() => setFilter("all")}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === "all"}
-                >
-                  All
-                </button>
-                <button
-                  className={
-                    filter === "active" ? "tm-segBtn tm-segBtnActive" : "tm-segBtn"
-                  }
-                  onClick={() => setFilter("active")}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === "active"}
-                >
-                  Active
-                </button>
-                <button
-                  className={filter === "done" ? "tm-segBtn tm-segBtnActive" : "tm-segBtn"}
-                  onClick={() => setFilter("done")}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === "done"}
-                >
-                  Done
-                </button>
-              </div>
+              <TaskFilters filter={filter} onChangeFilter={setFilter} />
 
               <button
                 className="tm-btn tm-btnDanger"
@@ -359,10 +293,10 @@ export default function App() {
               placeholder="Add a task..."
               aria-label="New task title"
               onKeyDown={(e) => {
-                if (e.key === "Enter") addTask();
+                if (e.key === "Enter") createTask();
               }}
             />
-            <button className="tm-btn tm-btnPrimary" onClick={addTask} type="button">
+            <button className="tm-btn tm-btnPrimary" onClick={createTask} type="button">
               Add
             </button>
           </div>
@@ -376,73 +310,17 @@ export default function App() {
           />
         </div>
 
-        <ul className="tm-list">
-          {visibleTasks.map((item) => {
-            const isEditing = editingId === item.id;
-
-            return (
-              <li className="tm-item" key={item.id}>
-                <button
-                  className="tm-btn tm-btnGhost tm-btnTight"
-                  onClick={() => toggle(item.id)}
-                  type="button"
-                  aria-pressed={item.completed}
-                  title={item.completed ? "Mark as not done" : "Mark as done"}
-                >
-                  {item.completed ? "Undo" : "Done"}
-                </button>
-
-                {isEditing ? (
-                  <input
-                    className="tm-input tm-inputInline"
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    aria-label="Edit task title"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEditing(item.id);
-                      if (e.key === "Escape") cancelEditing();
-                    }}
-                  />
-                ) : (
-                  <span className={item.completed ? "tm-text tm-textDone" : "tm-text"}>
-                    {item.title}
-                  </span>
-                )}
-
-                {isEditing ? (
-                  <button
-                    className="tm-btn tm-btnPrimary tm-btnTight"
-                    onClick={() => commitEditing(item.id)}
-                    type="button"
-                    title="Save edit"
-                  >
-                    Save
-                  </button>
-                ) : (
-                  <button
-                    className="tm-btn tm-btnGhost tm-btnTight"
-                    onClick={() => startEditing(item)}
-                    type="button"
-                    title={item.completed ? "Completed tasks can't be edited" : "Edit task"}
-                    disabled={item.completed}
-                  >
-                    Edit
-                  </button>
-                )}
-
-                <button
-                  className="tm-btn tm-btnDanger tm-btnTight"
-                  onClick={() => deleteTask(item.id)}
-                  type="button"
-                  title="Delete task"
-                >
-                  Delete
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <TaskList
+          tasks={visibleTasks}
+          editingId={editingId}
+          editingTitle={editingTitle}
+          onToggle={toggle}
+          onDelete={deleteTask}
+          onStartEdit={startEditing}
+          onCommitEdit={commitEditing}
+          onCancelEdit={cancelEditing}
+          onEditingTitleChange={setEditingTitle}
+        />
 
         {visibleTasks.length === 0 ? (
           <div className="tm-empty">
