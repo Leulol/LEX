@@ -352,6 +352,28 @@
   transition: box-shadow 150ms ease;
 }
 
+.tm-priorityMark {
+  position: absolute;
+  right: 10px;
+  top: -10px;
+  width: 84px;
+  height: 18px;
+  border-radius: 0 0 14px 14px;
+  box-shadow: rgba(0, 0, 0, 0.14) 0 10px 20px;
+}
+
+.tm-priorityMarkLow {
+  background: #22c55e; /* green */
+}
+
+.tm-priorityMarkMedium {
+  background: #facc15; /* yellow (brighter) */
+}
+
+.tm-priorityMarkHigh {
+  background: #ef4444; /* red */
+}
+
 .tm-item:hover {
   box-shadow: rgba(0, 0, 0, 0.09) 0 8px 18px;
 }

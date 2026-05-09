@@ -1,9 +1,22 @@
-//Here is where the diffrent method and service are provided for APP.jsx
-//So we kind of use it in a way where it recives the arguments and fetchs the response and aslo deiplays it in a json file for the app.jsx
-// Backend base URL (FastAPI). Default: local dev server.
-const API_BASE_URL = "http://192.168.1.8:8000";
+// Here is where the different methods and service are provided for App.jsx.
+// Make API URL automatic so you don't edit this file every time the IPv4 changes.
+//
+// Priority:
+// 1) Use `VITE_API_BASE_URL` if set (e.g. "http://192.168.1.10:8000")
+// 2) Otherwise use the same hostname as the frontend, but port 8000.
+export const API_BASE_URL = (() => {
+  const fromEnv = import.meta?.env?.VITE_API_BASE_URL;
+  if (typeof fromEnv === "string" && fromEnv.trim() !== "") return fromEnv.trim();
 
-export async function fetchTasks(){
+  // Fallback for tooling/non-browser contexts
+  if (typeof window === "undefined") return "http://127.0.0.1:8000";
+
+  const protocol = window.location.protocol || "http:";
+  const host = window.location.hostname || "127.0.0.1";
+  return `${protocol}//${host}:8000`;
+})();
+
+export async function fetchTasks() {
   const response = await fetch(`${API_BASE_URL}/tasks`);
   const data = await response.json();
   return data;
@@ -20,19 +33,19 @@ export async function fetch_createTask(task) {
         };
 
   const response = await fetch(`${API_BASE_URL}/tasks`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(payload),
   });
-  const data = await response.json()
+  const data = await response.json();
   return data;
 }
 
 export async function fetch_deleteTask(id) {
   const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-        method:"DELETE",
+    method: "DELETE",
   });
   const data = await response.json();
   return data;
@@ -40,10 +53,10 @@ export async function fetch_deleteTask(id) {
 
 export async function fetch_deleteAllTasks() {
   const response = await fetch(`${API_BASE_URL}/tasks`, {
-        method: "DELETE"
-      })
-      const data = await response.json();
-      return data;
+    method: "DELETE",
+  });
+  const data = await response.json();
+  return data;
 }
 
 export async function fetch_deleteCompletedTasks() {
@@ -65,3 +78,4 @@ export async function fetch_updateTask(taskId, updates) {
   const data = await response.json();
   return data;
 }
+

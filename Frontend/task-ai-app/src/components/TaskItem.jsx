@@ -27,6 +27,13 @@ export default function TaskItem({
 
   const priorityLabel = task.priority === "high" ? "High" : task.priority === "low" ? "Low" : "Medium";
 
+  const priorityMarkClass =
+    task.priority === "high"
+      ? "tm-priorityMark tm-priorityMarkHigh"
+      : task.priority === "low"
+        ? "tm-priorityMark tm-priorityMarkLow"
+        : "tm-priorityMark tm-priorityMarkMedium";
+
   function addSubtask() {
     const t = newSubtaskTitle.trim();
     if (t === "") return;
@@ -37,6 +44,7 @@ export default function TaskItem({
 
   return (
     <li className="tm-item" key={task.id}>
+      <span className={priorityMarkClass} aria-hidden="true" />
       <button
         className={task.completed ? "tm-toggleBtn tm-toggleBtnDone" : "tm-toggleBtn"}
         onClick={() => onToggle(task.id)}
