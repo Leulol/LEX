@@ -20,8 +20,29 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
               (id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 completed BOOLEAN NOT NULL,
+                priority TEXT NOT NULL DEFAULT 'medium',
+                subtasks TEXT NOT NULL DEFAULT '[]',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
 conn.commit()
+
+
+def _get_task_columns():
+    cursor.execute("PRAGMA table_info(tasks)")
+    rows = cursor.fetchall()
+    return {r[1] for r in rows}
+
+
+def _ensure_column(name, ddl):
+    cols = _get_task_columns()
+    if name in cols:
+        return
+    cursor.execute(ddl)
+    conn.commit()
+
+
+# Small migration for older databases
+_ensure_column("priority", "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'")
+_ensure_column("subtasks", "ALTER TABLE tasks ADD COLUMN subtasks TEXT NOT NULL DEFAULT '[]'")
 
 

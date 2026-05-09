@@ -23,6 +23,11 @@ function normalizeApiTask(raw) {
     id,
     title: typeof raw.title === "string" ? raw.title : "",
     completed: Boolean(raw.completed),
+    priority:
+      raw.priority === "low" || raw.priority === "high" || raw.priority === "medium"
+        ? raw.priority
+        : "medium",
+    subtasks: Array.isArray(raw.subtasks) ? raw.subtasks : [],
   };
 }
 
@@ -35,6 +40,7 @@ export default function App() {
   const inputRef = useRef(null);
 
   const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState("medium"); // low | medium | high
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all"); // all | active | done
 
@@ -43,14 +49,23 @@ export default function App() {
 
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [editingPriority, setEditingPriority] = useState("medium");
+  const [editingSubtasks, setEditingSubtasks] = useState([]);
+
+  async function refreshTasks() {
+    try {
+      const data = await fetchTasks();
+      setTasks(normalizeApiTasks(data?.data?.tasks));
+    } catch (error) {
+      console.error("Failed to refresh tasks: ", error);
+    }
+  }
 
   // Load from backend on first render
   useEffect(() => {
     async function loadTasks() {
       try {
-        const data = await fetchTasks();
-
-        setTasks(normalizeApiTasks(data?.data?.tasks));
+        await refreshTasks();
       }catch(error) {
         console.error("Failed to Load Task: ", error);
       }finally{
@@ -59,6 +74,25 @@ export default function App() {
     }
     loadTasks();
   }, []);
+
+  // Keep devices in sync: light polling (beginner-friendly).
+  useEffect(() => {
+    if (!hasLoaded) return;
+
+    let cancelled = false;
+
+    async function tick() {
+      if (cancelled) return;
+      if (document.visibilityState !== "visible") return;
+      await refreshTasks();
+    }
+
+    const id = setInterval(tick, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [hasLoaded]);
 
   // Save to localStorage after load is complete
   useEffect(() => {
@@ -72,7 +106,11 @@ export default function App() {
   if (nextTitle === "") return;
 
   try {
-    const data = await fetch_createTask(`${nextTitle}`)
+    const data = await fetch_createTask({
+      title: nextTitle,
+      priority,
+      subtasks: [],
+    });
 
     if (data.success === false) {
       console.error(data.error);
@@ -89,7 +127,11 @@ export default function App() {
     setTasks((prev) => [...prev, newTask]);
 
     setTitle("");
+    setPriority("medium");
     inputRef.current?.focus();
+
+    // Ensure other devices / server state stays consistent
+    refreshTasks();
 
   } catch (error) {
     console.error("Failed to add task:", error);
@@ -110,6 +152,7 @@ export default function App() {
         return;
       }
       setTasks((prev)=> prev.filter((t) => t.id !== id));
+      refreshTasks();
     }catch(error){
       console.error("Failed to Load Task: ", error)
     }
@@ -128,6 +171,7 @@ export default function App() {
         return;
       }
       setTasks([]);
+      refreshTasks();
     }catch(error){
       console.error("Failed to delete all tasks: ", error);
     }
@@ -145,6 +189,7 @@ export default function App() {
         return;
       }
       setTasks((prev) => prev.filter((t) => !t.completed));
+      refreshTasks();
     }catch(error){
       console.error("Failed to Delete Competed Task: ", error);
     }
@@ -157,11 +202,15 @@ export default function App() {
     }
     setEditingId(task.id);
     setEditingTitle(task.title);
+    setEditingPriority(task.priority ?? "medium");
+    setEditingSubtasks(Array.isArray(task.subtasks) ? task.subtasks : []);
   }
 
   function cancelEditing() {
     setEditingId(null);
     setEditingTitle("");
+    setEditingPriority("medium");
+    setEditingSubtasks([]);
   }
 
   async function commitEditing(id) {
@@ -172,7 +221,11 @@ export default function App() {
     const next = editingTitle.trim();
     if (next === "") return; // don't allow empty titles
     try{
-      const data = await fetch_updateTask(id, { title: next });
+      const data = await fetch_updateTask(id, {
+        title: next,
+        priority: editingPriority,
+        subtasks: editingSubtasks,
+      });
       if (data?.success === false){
         console.error(data.error);
         return;
@@ -191,6 +244,7 @@ export default function App() {
         prev.map((t) => (t.id === id ? updatedTask : t))
       );
       cancelEditing();
+      refreshTasks();
     }catch(error){
       console.error("Failed to update task:", error);
     }
@@ -221,6 +275,7 @@ export default function App() {
         return;
       }
       setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
+      refreshTasks();
     } catch (error) {
       console.error("Failed to toggle task:", error);
     }
@@ -244,13 +299,48 @@ export default function App() {
       .filter((t) => (q === "" ? true : t.title.toLowerCase().includes(q)));
   }, [tasks, filter, query]);
 
+  const todayLabel = useMemo(() => {
+    try {
+      return new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return "";
+    }
+  }, []);
+
   return (
     <div className="tm-shell">
+      <nav className="tm-nav">
+        <div className="tm-navInner">
+          <div className="tm-logo" aria-label="App logo">
+            <img className="tm-logoImg" src="/lex-logo.png" alt="LEX logo" />
+            <div className="tm-logoText">LEX</div>
+          </div>
+
+          <p className="tm-date">{todayLabel}</p>
+
+          <button
+            className="tm-newBtn"
+            type="button"
+            onClick={() => inputRef.current?.focus()}
+            title="Focus new task input"
+          >
+            New Task
+          </button>
+        </div>
+      </nav>
+
       <main className="tm-card">
         <header className="tm-header">
           <div className="tm-titleRow">
             <div className="tm-titleBlock">
-              <h1 className="tm-title">Tasks</h1>
+              <div className="tm-hero">
+                <h1 className="tm-heroTitle">My Workspace</h1>
+                <p className="tm-heroSub">Stay on top of everything. Clean slate, sharp mind.</p>
+              </div>
               <TaskStats
                 totalCount={tasks.length}
                 remainingCount={remainingCount}
@@ -296,6 +386,16 @@ export default function App() {
                 if (e.key === "Enter") createTask();
               }}
             />
+            <select
+              className="tm-input tm-select"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              aria-label="New task priority"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
             <button className="tm-btn tm-btnPrimary" onClick={createTask} type="button">
               Add
             </button>
@@ -314,12 +414,16 @@ export default function App() {
           tasks={visibleTasks}
           editingId={editingId}
           editingTitle={editingTitle}
+          editingPriority={editingPriority}
+          editingSubtasks={editingSubtasks}
           onToggle={toggle}
           onDelete={deleteTask}
           onStartEdit={startEditing}
           onCommitEdit={commitEditing}
           onCancelEdit={cancelEditing}
           onEditingTitleChange={setEditingTitle}
+          onEditingPriorityChange={setEditingPriority}
+          onEditingSubtasksChange={setEditingSubtasks}
         />
 
         {visibleTasks.length === 0 ? (

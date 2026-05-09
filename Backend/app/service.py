@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from .config import Config
 from . import database
 from .models import Task
@@ -29,6 +30,45 @@ def validate_completed(value):
         raise ValueError("Completed must be a boolean")
     return value
 
+
+def validate_priority(value):
+    if value is None:
+        return "medium"
+    if not isinstance(value, str):
+        raise ValueError("Priority must be a string")
+
+    value = value.strip().lower()
+    allowed = {"low", "medium", "high"}
+    if value not in allowed:
+        raise ValueError("Priority must be low, medium, or high")
+    return value
+
+
+def validate_subtasks(value):
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError("Subtasks must be a list")
+
+    cleaned = []
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValueError("Each subtask must be an object")
+
+        title = item.get("title", "")
+        if not isinstance(title, str) or title.strip() == "":
+            raise ValueError("Each subtask must have a title")
+
+        completed = item.get("completed", False)
+        completed = validate_completed(bool(completed))
+
+        cleaned.append({
+            "title": title.strip(),
+            "completed": completed,
+        })
+
+    return cleaned
+
 def validate_pagination(page, limit):
     if not isinstance(page, int) or page <= 0:
         raise ValueError("Page must be a positive integer")
@@ -57,8 +97,10 @@ def row_to_task(row):
         id=row[0],
         title=row[1],
         completed=bool(row[2]),
-        created_at=row[3],
-        updated_at=row[4]
+        priority=row[3],
+        subtasks=json.loads(row[4] or "[]"),
+        created_at=row[5],
+        updated_at=row[6]
     )
 
 
@@ -69,12 +111,15 @@ def add_task(task):
         # Validation
         task.title = validate_title(task.title)
         task.completed = validate_completed(task.completed)
+        task.priority = validate_priority(task.priority)
+        task.subtasks = validate_subtasks(task.subtasks)
+        subtasks_json = json.dumps(task.subtasks)
 
         # Insert
         with database.db_lock:
             database.cursor.execute(
-                "INSERT INTO tasks (title, completed) VALUES (?, ?)",
-                (task.title, int(task.completed))
+                "INSERT INTO tasks (title, completed, priority, subtasks) VALUES (?, ?, ?, ?)",
+                (task.title, int(task.completed), task.priority, subtasks_json)
             )
             database.conn.commit()
 
@@ -82,7 +127,7 @@ def add_task(task):
 
             # Fetch inserted row
             database.cursor.execute(
-                "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
+                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks WHERE id = ?",
                 (task_id,)
             )
             row = database.cursor.fetchone()
@@ -110,7 +155,7 @@ def get_task(id):
 
         with database.db_lock:
             database.cursor.execute(
-                "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE id = ?",
+                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks WHERE id = ?",
                 (id,)
             )
             row = database.cursor.fetchone()
@@ -133,7 +178,7 @@ def search_task(title):
         title = validate_title(title)
         with database.db_lock:
             database.cursor.execute(
-                "SELECT id, title, completed, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
+                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
                     (title,)
             )
             row = database.cursor.fetchone()
@@ -158,7 +203,7 @@ def get_all_tasks(page=1, limit=10):
 
         with database.db_lock:
             database.cursor.execute(
-                "SELECT id, title, completed, created_at, updated_at FROM tasks LIMIT ? OFFSET ?",
+                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks LIMIT ? OFFSET ?",
                 (limit, offset)
             )
             rows = database.cursor.fetchall()
@@ -185,7 +230,7 @@ def get_all_tasks(page=1, limit=10):
         return error_response("Database error")
 
 
-def update_task(id, title=None, completed=None):
+def update_task(id, title=None, completed=None, priority=None, subtasks=None):
     try:
         validate_id(id)
 
@@ -201,13 +246,22 @@ def update_task(id, title=None, completed=None):
         if completed is not None:
             completed = validate_completed(completed)
 
+        if priority is not None:
+            priority = validate_priority(priority)
+
+        if subtasks is not None:
+            subtasks = validate_subtasks(subtasks)
+
         new_title = title if title is not None else task.title
         new_completed = completed if completed is not None else task.completed
+        new_priority = priority if priority is not None else task.priority
+        new_subtasks = subtasks if subtasks is not None else task.subtasks
+        subtasks_json = json.dumps(new_subtasks)
 
         with database.db_lock:
             database.cursor.execute(
-                "UPDATE tasks SET title = ?, completed = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (new_title, int(new_completed), id)
+                "UPDATE tasks SET title = ?, completed = ?, priority = ?, subtasks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (new_title, int(new_completed), new_priority, subtasks_json, id)
             )
             database.conn.commit()
 

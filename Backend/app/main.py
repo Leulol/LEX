@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from . import service
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 
 app = FastAPI()
 
@@ -25,10 +26,14 @@ app.add_middleware(
 
 class TaskCreate(BaseModel):
     title: str
+    priority: Optional[str] = "medium"
+    subtasks: Optional[List[dict]] = None
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
+    priority: Optional[str] = None
+    subtasks: Optional[List[dict]] = None
 
 
 # -------------------------
@@ -52,7 +57,7 @@ def get_task(task_id: int):
 @app.post("/tasks")
 def create_task(task: TaskCreate):#from the Pydantic Schemas in line 15-25
     from .models import Task
-    new_task = Task(title=task.title)
+    new_task = Task(title=task.title, priority=task.priority, subtasks=task.subtasks)
     result = service.add_task(new_task)
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create task")
@@ -61,7 +66,13 @@ def create_task(task: TaskCreate):#from the Pydantic Schemas in line 15-25
 
 @app.patch("/tasks/{task_id}")
 def update_task(task_id: int, task: TaskUpdate):
-    updated_task = service.update_task(task_id, title=task.title, completed=task.completed)
+    updated_task = service.update_task(
+        task_id,
+        title=task.title,
+        completed=task.completed,
+        priority=task.priority,
+        subtasks=task.subtasks,
+    )
     if not updated_task:
         raise HTTPException(status_code=404, detail="Task not found or invalid input")
     return updated_task
