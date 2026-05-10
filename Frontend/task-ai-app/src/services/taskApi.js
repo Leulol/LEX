@@ -23,16 +23,16 @@ export async function fetchTasks() {
 }
 
 export async function fetch_createTask(task) {
-  const payload =
+  const payload =//where the tasks property are defined using an if statment befor pacing to the backend
     typeof task === "string"
-      ? { title: task }
+      ? { title: task }//If line 27 is true
       : {
           title: task?.title,
           priority: task?.priority,
           subtasks: task?.subtasks,
         };
 
-  const response = await fetch(`${API_BASE_URL}/tasks`, {
+  const response = await fetch(`${API_BASE_URL}/tasks`, {//It waits till the backend return with a JSON
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -79,3 +79,14 @@ export async function fetch_updateTask(taskId, updates) {
   return data;
 }
 
+export async function fetch_reorderTasks(items) {
+  const response = await fetch(`${API_BASE_URL}/tasks/reorder`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ items }),
+  });
+  const data = await response.json();
+  return data;
+}

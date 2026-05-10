@@ -22,6 +22,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
                 completed BOOLEAN NOT NULL,
                 priority TEXT NOT NULL DEFAULT 'medium',
                 subtasks TEXT NOT NULL DEFAULT '[]',
+                sort_order INTEGER,
+                order_mode TEXT NOT NULL DEFAULT 'priority',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
 conn.commit()
@@ -44,5 +46,7 @@ def _ensure_column(name, ddl):
 # Small migration for older databases
 _ensure_column("priority", "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'")
 _ensure_column("subtasks", "ALTER TABLE tasks ADD COLUMN subtasks TEXT NOT NULL DEFAULT '[]'")
+_ensure_column("sort_order", "ALTER TABLE tasks ADD COLUMN sort_order INTEGER")
+_ensure_column("order_mode", "ALTER TABLE tasks ADD COLUMN order_mode TEXT NOT NULL DEFAULT 'priority'")
 
 

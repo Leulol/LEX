@@ -8,15 +8,24 @@ import {
   fetch_deleteAllTasks,
   fetch_deleteCompletedTasks,
   fetch_deleteTask,
+  fetch_reorderTasks,
   fetch_updateTask,
   fetchTasks,
 } from "./services/taskApi.js";
 
 
-function normalizeApiTask(raw) {
+function normalizeApiTask(raw) {//The raw is data inputed from the Backend payload
   if (!raw || typeof raw !== "object") return null;
   const id = typeof raw.id === "number" ? raw.id : Number.parseInt(raw.id, 10);
   if (!Number.isFinite(id)) return null;
+
+  const rawSortOrder = raw.sort_order;
+  const sort_order =
+    rawSortOrder === null || typeof rawSortOrder === "undefined"
+      ? null
+      : typeof rawSortOrder === "number"
+        ? rawSortOrder
+        : Number.parseInt(rawSortOrder, 10);
 
   return {
     ...raw,
@@ -28,6 +37,8 @@ function normalizeApiTask(raw) {
         ? raw.priority
         : "medium",
     subtasks: Array.isArray(raw.subtasks) ? raw.subtasks : [],
+    sort_order: Number.isFinite(sort_order) ? sort_order : null,
+    order_mode: raw.order_mode === "manual" || raw.order_mode === "priority" ? raw.order_mode : "priority",
   };
 }
 
@@ -52,7 +63,7 @@ export default function App() {
   const [editingPriority, setEditingPriority] = useState("medium");
   const [editingSubtasks, setEditingSubtasks] = useState([]);
 
-  async function refreshTasks() {
+  async function refreshTasks() {//gets the task available in the database
     try {
       const data = await fetchTasks();
       setTasks(normalizeApiTasks(data?.data?.tasks));
@@ -75,7 +86,7 @@ export default function App() {
     loadTasks();
   }, []);
 
-  // Keep devices in sync: light polling (beginner-friendly).
+  // Keep devices in sync: light polling (beginner-friendly) To refresh the Tasks view.
   useEffect(() => {
     if (!hasLoaded) return;
 
@@ -124,7 +135,7 @@ export default function App() {
       return;
     }
 
-    setTasks((prev) => [...prev, newTask]);
+    setTasks((prev) => [...prev, newTask]);//Prev means old tasks list
 
     setTitle("");
     setPriority("medium");
@@ -151,7 +162,7 @@ export default function App() {
         console.error(data.error);
         return;
       }
-      setTasks((prev)=> prev.filter((t) => t.id !== id));
+      setTasks((prev)=> prev.filter((t) => t.id !== id));//Skip matching ID
       refreshTasks();
     }catch(error){
       console.error("Failed to Load Task: ", error)
@@ -289,15 +300,69 @@ export default function App() {
 
   const visibleTasks = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const priorityRank = (p) => (p === "high" ? 3 : p === "medium" ? 2 : 1);
+    const hasManual = tasks.some((t) => t?.order_mode === "manual");
 
-    return tasks
+    const filtered = tasks
       .filter((t) => {
         if (filter === "active") return !t.completed;
         if (filter === "done") return t.completed;
         return true;
       })
       .filter((t) => (q === "" ? true : t.title.toLowerCase().includes(q)));
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (hasManual) {
+        const ao = Number.isFinite(a.sort_order) ? a.sort_order : Number.MAX_SAFE_INTEGER;
+        const bo = Number.isFinite(b.sort_order) ? b.sort_order : Number.MAX_SAFE_INTEGER;
+        if (ao !== bo) return ao - bo;
+      }
+      const ap = priorityRank(a.priority);
+      const bp = priorityRank(b.priority);
+      if (ap !== bp) return bp - ap;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
+
+    return sorted;
   }, [tasks, filter, query]);
+
+  async function reorderTasks(activeId, overId) {
+    if (!Number.isFinite(activeId) || !Number.isFinite(overId)) return;
+    if (activeId === overId) return;
+
+    const currentVisible = Array.isArray(visibleTasks) ? visibleTasks : [];
+    const visibleCopy = [...currentVisible];
+    const fromIndex = visibleCopy.findIndex((t) => t.id === activeId);
+    const toIndex = visibleCopy.findIndex((t) => t.id === overId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const [moved] = visibleCopy.splice(fromIndex, 1);
+    visibleCopy.splice(toIndex, 0, moved);
+
+    const visibleIds = new Set(visibleCopy.map((t) => t.id));
+    const untouched = (Array.isArray(tasks) ? tasks : []).filter((t) => !visibleIds.has(t.id));
+
+    const combined = [...visibleCopy, ...untouched];
+    const next = combined.map((t, idx) => ({ ...t, order_mode: "manual", sort_order: idx }));
+
+    setTasks(next);
+
+    try {
+      const items = next
+        .map((t) => t.id)
+        .filter((id) => Number.isFinite(id))
+        .map((id, idx) => ({ id, sort_order: idx }));
+
+      const data = await fetch_reorderTasks(items);
+      if (data?.success === false) {
+        console.error(data.error);
+        return;
+      }
+      refreshTasks();
+    } catch (error) {
+      console.error("Failed to reorder tasks:", error);
+    }
+  }
 
   const todayLabel = useMemo(() => {
     try {
@@ -338,8 +403,8 @@ export default function App() {
           <div className="tm-titleRow">
             <div className="tm-titleBlock">
               <div className="tm-hero">
-                <h1 className="tm-heroTitle">My Workspace</h1>
-                <p className="tm-heroSub">Stay on top of everything. Clean slate, sharp mind.</p>
+                <h1 className="tm-heroTitle">NEXUS</h1>
+                <p className="tm-heroSub">Fucking Do IT</p>
               </div>
               <TaskStats
                 totalCount={tasks.length}
@@ -416,6 +481,7 @@ export default function App() {
           editingTitle={editingTitle}
           editingPriority={editingPriority}
           editingSubtasks={editingSubtasks}
+          onReorder={reorderTasks}
           onToggle={toggle}
           onDelete={deleteTask}
           onStartEdit={startEditing}

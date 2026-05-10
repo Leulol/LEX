@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export default function TaskItem({
   task,
@@ -16,6 +18,12 @@ export default function TaskItem({
   onEditingSubtasksChange,
 }) {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const sortable = useSortable({ id: task.id });
+  const style = {
+    transform: CSS.Transform.toString(sortable.transform),
+    transition: sortable.transition,
+    opacity: sortable.isDragging ? 0.6 : 1,
+  };
 
   const progress = useMemo(() => {
     const items = Array.isArray(task.subtasks) ? task.subtasks : [];
@@ -43,8 +51,25 @@ export default function TaskItem({
   }
 
   return (
-    <li className="tm-item" key={task.id}>
+    <li
+      className={isEditing ? "tm-item tm-itemEditing" : "tm-item"}
+      key={task.id}
+      ref={sortable.setNodeRef}
+      style={style}
+    >
       <span className={priorityMarkClass} aria-hidden="true" />
+
+      <button
+        className="tm-dragHandle"
+        type="button"
+        aria-label="Drag to reorder"
+        title="Drag to reorder"
+        {...sortable.attributes}
+        {...sortable.listeners}
+      >
+        ⋮⋮
+      </button>
+
       <button
         className={task.completed ? "tm-toggleBtn tm-toggleBtnDone" : "tm-toggleBtn"}
         onClick={() => onToggle(task.id)}
@@ -57,36 +82,42 @@ export default function TaskItem({
       </button>
 
       <div className="tm-itemMain">
-        <div className="tm-itemTitleRow">
-          {isEditing ? (
-            <input
-              className="tm-input tm-inputInline"
-              value={editingTitle}
-              onChange={(e) => onEditingTitleChange(e.target.value)}
-              aria-label="Edit task title"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onCommitEdit(task.id);
-                if (e.key === "Escape") onCancelEdit();
-              }}
-            />
-          ) : (
-            <span className={task.completed ? "tm-text tm-textDone" : "tm-text"}>{task.title}</span>
-          )}
-
-          <span
-            className={
-              task.priority === "high"
-                ? "tm-priority tm-priorityHigh"
-                : task.priority === "low"
-                  ? "tm-priority tm-priorityLow"
-                  : "tm-priority tm-priorityMedium"
+        <button
+          className="tm-itemHeader"
+          type="button"
+          aria-expanded={isEditing}
+          onClick={() => {
+            if (isEditing) {
+              onCancelEdit();
+              return;
             }
-            title={`Priority: ${priorityLabel}`}
-          >
-            {priorityLabel}
-          </span>
-        </div>
+            if (task.completed) return;
+            onStartEdit(task);
+          }}
+          title={task.completed ? "Completed tasks can't be edited" : isEditing ? "Collapse details" : "Expand details"}
+        >
+          <div className="tm-itemTitleRow">
+            <span className={task.completed ? "tm-text tm-textDone" : "tm-text"}>{task.title}</span>
+
+            <div className="tm-itemTitleRight">
+              <span
+                className={
+                  task.priority === "high"
+                    ? "tm-priority tm-priorityHigh"
+                    : task.priority === "low"
+                      ? "tm-priority tm-priorityLow"
+                      : "tm-priority tm-priorityMedium"
+                }
+                title={`Priority: ${priorityLabel}`}
+              >
+                {priorityLabel}
+              </span>
+              <span className={isEditing ? "tm-caret tm-caretOpen" : "tm-caret"} aria-hidden="true">
+                ▾
+              </span>
+            </div>
+          </div>
+        </button>
 
         {!isEditing && progress ? (
           <div className="tm-progress" aria-label={`Progress: ${progress.pct}%`}>
@@ -99,107 +130,105 @@ export default function TaskItem({
           </div>
         ) : null}
 
-        {isEditing ? (
-          <div className="tm-editExtras">
-            <label className="tm-editField">
-              <span className="tm-editLabel">Priority</span>
-              <select
-                className="tm-input tm-select tm-selectInline"
-                value={editingPriority}
-                onChange={(e) => onEditingPriorityChange(e.target.value)}
-                aria-label="Edit priority"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </label>
-
-            <div className="tm-subtasks">
-              <div className="tm-subtasksHead">Subtasks</div>
-
-              {(Array.isArray(editingSubtasks) ? editingSubtasks : []).map((s, idx) => (
-                <div className="tm-subtaskRow" key={`${idx}-${s?.title ?? ""}`}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(s?.completed)}
-                    onChange={() => {
-                      const next = (Array.isArray(editingSubtasks) ? editingSubtasks : []).map((x, i) =>
-                        i === idx ? { ...x, completed: !Boolean(x?.completed) } : x
-                      );
-                      onEditingSubtasksChange(next);
-                    }}
-                    aria-label={`Toggle subtask ${idx + 1}`}
-                  />
-                  <span className={s?.completed ? "tm-subtaskText tm-subtaskDone" : "tm-subtaskText"}>
-                    {s?.title ?? ""}
-                  </span>
-                  <button
-                    className="tm-btn tm-btnGhost tm-btnTight"
-                    type="button"
-                    title="Remove subtask"
-                    onClick={() => {
-                      const next = (Array.isArray(editingSubtasks) ? editingSubtasks : []).filter(
-                        (_, i) => i !== idx
-                      );
-                      onEditingSubtasksChange(next);
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-
-              <div className="tm-subtaskAdd">
+        <div className={isEditing ? "tm-details tm-detailsOpen" : "tm-details"}>
+          {isEditing ? (
+            <>
+              <label className="tm-editField">
+                <span className="tm-editLabel">Title</span>
                 <input
                   className="tm-input tm-inputInline"
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  placeholder="Add subtask..."
-                  aria-label="New subtask title"
+                  value={editingTitle}
+                  onChange={(e) => onEditingTitleChange(e.target.value)}
+                  aria-label="Edit task title"                  
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") addSubtask();
+                    if (e.key === "Enter") onCommitEdit(task.id);
+                    if (e.key === "Escape") onCancelEdit();
                   }}
                 />
-                <button className="tm-btn tm-btnGhost" type="button" onClick={addSubtask}>
-                  Add
-                </button>
+              </label>
+
+              <label className="tm-editField">
+                <span className="tm-editLabel">Priority</span>
+                <select
+                  className="tm-input tm-select tm-selectInline"
+                  value={editingPriority}
+                  onChange={(e) => onEditingPriorityChange(e.target.value)}
+                  aria-label="Edit priority"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+
+              <div className="tm-subtasks">
+                <div className="tm-subtasksHead">Subtasks</div>
+
+                {(Array.isArray(editingSubtasks) ? editingSubtasks : []).map((s, idx) => (
+                  <div className="tm-subtaskRow" key={`${idx}-${s?.title ?? ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(s?.completed)}
+                      onChange={() => {
+                        const next = (Array.isArray(editingSubtasks) ? editingSubtasks : []).map((x, i) =>
+                          i === idx ? { ...x, completed: !Boolean(x?.completed) } : x
+                        );
+                        onEditingSubtasksChange(next);
+                      }}
+                      aria-label={`Toggle subtask ${idx + 1}`}
+                    />
+                    <span className={s?.completed ? "tm-subtaskText tm-subtaskDone" : "tm-subtaskText"}>
+                      {s?.title ?? ""}
+                    </span>
+                    <button
+                      className="tm-btn tm-btnGhost tm-btnTight"
+                      type="button"
+                      title="Remove subtask"
+                      onClick={() => {
+                        const next = (Array.isArray(editingSubtasks) ? editingSubtasks : []).filter((_, i) => i !== idx);
+                        onEditingSubtasksChange(next);
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+
+                <div className="tm-subtaskAdd">
+                  <input
+                    className="tm-input tm-inputInline"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Add subtask..."
+                    aria-label="New subtask title"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addSubtask();
+                    }}
+                  />
+                  <button className="tm-btn tm-btnGhost" type="button" onClick={addSubtask}>
+                    Add
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div className="tm-itemActions" aria-label="Task actions">
         {isEditing ? (
-          <button
-            className="tm-newBtn"
-            onClick={() => onCommitEdit(task.id)}
-            type="button"
-            title="Save edit"
-          >
-            Save
-          </button>
-        ) : (
           <>
-            <button
-              className="tm-iconBtn"
-              onClick={() => onStartEdit(task)}
-              type="button"
-              title={task.completed ? "Completed tasks can't be edited" : "Edit task"}
-              disabled={task.completed}
-            >
-              ✎
+            <button className="tm-newBtn" onClick={() => onCommitEdit(task.id)} type="button" title="Save edit">
+              Save
             </button>
-            <button
-              className="tm-iconBtn tm-iconBtnDanger"
-              onClick={() => onDelete(task.id)}
-              type="button"
-              title="Delete task"
-            >
-              🗑
+            <button className="tm-btn tm-btnGhost" onClick={() => onCancelEdit()} type="button" title="Cancel edit">
+              Cancel
             </button>
           </>
+        ) : (
+          <button className="tm-iconBtn tm-iconBtnDanger" onClick={() => onDelete(task.id)} type="button" title="Delete task">
+            🗑
+          </button>
         )}
       </div>
     </li>

@@ -69,6 +69,29 @@ def validate_subtasks(value):
 
     return cleaned
 
+def validate_sort_order(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError("sort_order must be an integer")
+    if not isinstance(value, int):
+        raise ValueError("sort_order must be an integer")
+    if value < 0:
+        raise ValueError("sort_order must be >= 0")
+    return value
+
+
+def validate_order_mode(value):
+    if value is None:
+        return "priority"
+    if not isinstance(value, str):
+        raise ValueError("order_mode must be a string")
+    value = value.strip().lower()
+    allowed = {"priority", "manual"}
+    if value not in allowed:
+        raise ValueError("order_mode must be priority or manual")
+    return value
+
 def validate_pagination(page, limit):
     if not isinstance(page, int) or page <= 0:
         raise ValueError("Page must be a positive integer")
@@ -99,8 +122,10 @@ def row_to_task(row):
         completed=bool(row[2]),
         priority=row[3],
         subtasks=json.loads(row[4] or "[]"),
-        created_at=row[5],
-        updated_at=row[6]
+        sort_order=row[5],
+        order_mode=row[6],
+        created_at=row[7],
+        updated_at=row[8]
     )
 
 
@@ -113,13 +138,15 @@ def add_task(task):
         task.completed = validate_completed(task.completed)
         task.priority = validate_priority(task.priority)
         task.subtasks = validate_subtasks(task.subtasks)
+        task.sort_order = validate_sort_order(task.sort_order)
+        task.order_mode = validate_order_mode(task.order_mode)
         subtasks_json = json.dumps(task.subtasks)
 
         # Insert
         with database.db_lock:
             database.cursor.execute(
-                "INSERT INTO tasks (title, completed, priority, subtasks) VALUES (?, ?, ?, ?)",
-                (task.title, int(task.completed), task.priority, subtasks_json)
+                "INSERT INTO tasks (title, completed, priority, subtasks, sort_order, order_mode) VALUES (?, ?, ?, ?, ?, ?)",
+                (task.title, int(task.completed), task.priority, subtasks_json, task.sort_order, task.order_mode)
             )
             database.conn.commit()
 
@@ -127,7 +154,7 @@ def add_task(task):
 
             # Fetch inserted row
             database.cursor.execute(
-                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks WHERE id = ?",
+                "SELECT id, title, completed, priority, subtasks, sort_order, order_mode, created_at, updated_at FROM tasks WHERE id = ?",
                 (task_id,)
             )
             row = database.cursor.fetchone()
@@ -155,7 +182,7 @@ def get_task(id):
 
         with database.db_lock:
             database.cursor.execute(
-                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks WHERE id = ?",
+                "SELECT id, title, completed, priority, subtasks, sort_order, order_mode, created_at, updated_at FROM tasks WHERE id = ?",
                 (id,)
             )
             row = database.cursor.fetchone()
@@ -178,8 +205,8 @@ def search_task(title):
         title = validate_title(title)
         with database.db_lock:
             database.cursor.execute(
-                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
-                    (title,)
+                "SELECT id, title, completed, priority, subtasks, sort_order, order_mode, created_at, updated_at FROM tasks WHERE LOWER(title) = LOWER(?)",
+                (title,)
             )
             row = database.cursor.fetchone()
         if not row:
@@ -203,7 +230,7 @@ def get_all_tasks(page=1, limit=10):
 
         with database.db_lock:
             database.cursor.execute(
-                "SELECT id, title, completed, priority, subtasks, created_at, updated_at FROM tasks LIMIT ? OFFSET ?",
+                "SELECT id, title, completed, priority, subtasks, sort_order, order_mode, created_at, updated_at FROM tasks LIMIT ? OFFSET ?",
                 (limit, offset)
             )
             rows = database.cursor.fetchall()
@@ -230,7 +257,7 @@ def get_all_tasks(page=1, limit=10):
         return error_response("Database error")
 
 
-def update_task(id, title=None, completed=None, priority=None, subtasks=None):
+def update_task(id, title=None, completed=None, priority=None, subtasks=None, sort_order=None, order_mode=None):
     try:
         validate_id(id)
 
@@ -252,16 +279,24 @@ def update_task(id, title=None, completed=None, priority=None, subtasks=None):
         if subtasks is not None:
             subtasks = validate_subtasks(subtasks)
 
+        if sort_order is not None:
+            sort_order = validate_sort_order(sort_order)
+
+        if order_mode is not None:
+            order_mode = validate_order_mode(order_mode)
+
         new_title = title if title is not None else task.title
         new_completed = completed if completed is not None else task.completed
         new_priority = priority if priority is not None else task.priority
         new_subtasks = subtasks if subtasks is not None else task.subtasks
+        new_sort_order = sort_order if sort_order is not None else getattr(task, "sort_order", None)
+        new_order_mode = order_mode if order_mode is not None else getattr(task, "order_mode", "priority")
         subtasks_json = json.dumps(new_subtasks)
 
         with database.db_lock:
             database.cursor.execute(
-                "UPDATE tasks SET title = ?, completed = ?, priority = ?, subtasks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (new_title, int(new_completed), new_priority, subtasks_json, id)
+                "UPDATE tasks SET title = ?, completed = ?, priority = ?, subtasks = ?, sort_order = ?, order_mode = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (new_title, int(new_completed), new_priority, subtasks_json, new_sort_order, new_order_mode, id)
             )
             database.conn.commit()
 
@@ -276,6 +311,47 @@ def update_task(id, title=None, completed=None, priority=None, subtasks=None):
 
     except sqlite3.Error as e:
         logger.error(f"Database error in update_task {id}: {e}")
+        return error_response("Database error")
+
+
+def reorder_tasks(items):
+    try:
+        if not isinstance(items, list) or len(items) == 0:
+            raise ValueError("items must be a non-empty list")
+
+        seen = set()
+        cleaned = []
+        for item in items:
+            if not isinstance(item, dict):
+                raise ValueError("Each item must be an object")
+            task_id = item.get("id")
+            sort_order = item.get("sort_order")
+            validate_id(task_id)
+            sort_order = validate_sort_order(sort_order)
+            if sort_order is None:
+                raise ValueError("sort_order is required for reorder items")
+            if task_id in seen:
+                raise ValueError("Duplicate task id in reorder items")
+            seen.add(task_id)
+            cleaned.append((sort_order, task_id))
+
+        with database.db_lock:
+            # Global manual mode once the user drags anything.
+            database.cursor.execute("UPDATE tasks SET order_mode = 'manual'")
+            database.cursor.executemany(
+                "UPDATE tasks SET sort_order = ?, order_mode = 'manual', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                cleaned
+            )
+            database.conn.commit()
+
+        return success_response(True)
+
+    except ValueError as ve:
+        logger.warning(f"Validation error in reorder_tasks: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in reorder_tasks: {e}")
         return error_response("Database error")
 
 

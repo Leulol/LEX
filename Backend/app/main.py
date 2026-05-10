@@ -28,12 +28,25 @@ class TaskCreate(BaseModel):
     title: str
     priority: Optional[str] = "medium"
     subtasks: Optional[List[dict]] = None
+    sort_order: Optional[int] = None
+    order_mode: Optional[str] = "priority"
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
     priority: Optional[str] = None
     subtasks: Optional[List[dict]] = None
+    sort_order: Optional[int] = None
+    order_mode: Optional[str] = None
+
+
+class ReorderItem(BaseModel):
+    id: int
+    sort_order: int
+
+
+class ReorderRequest(BaseModel):
+    items: List[ReorderItem]
 
 
 # -------------------------
@@ -57,7 +70,13 @@ def get_task(task_id: int):
 @app.post("/tasks")
 def create_task(task: TaskCreate):#from the Pydantic Schemas in line 15-25
     from .models import Task
-    new_task = Task(title=task.title, priority=task.priority, subtasks=task.subtasks)
+    new_task = Task(
+        title=task.title,
+        priority=task.priority,
+        subtasks=task.subtasks,
+        sort_order=task.sort_order,
+        order_mode=task.order_mode,
+    )
     result = service.add_task(new_task)
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create task")
@@ -72,10 +91,21 @@ def update_task(task_id: int, task: TaskUpdate):
         completed=task.completed,
         priority=task.priority,
         subtasks=task.subtasks,
+        sort_order=task.sort_order,
+        order_mode=task.order_mode,
     )
     if not updated_task:
         raise HTTPException(status_code=404, detail="Task not found or invalid input")
     return updated_task
+
+
+@app.patch("/tasks/reorder")
+def reorder_tasks(req: ReorderRequest):
+    payload = [i.model_dump() for i in req.items]
+    result = service.reorder_tasks(payload)
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to reorder tasks")
+    return result
 
 
 @app.delete("/tasks/{task_id}")
