@@ -85,10 +85,9 @@
 }
 
 .tm-date {
-  display: none;
   font-size: 12px;
   font-weight: 600;
-  color: #a1a1aa;
+  color: #f9f9fc;
 }
 
 .tm-newBtn {
@@ -124,9 +123,9 @@
   width: 100%;
   padding: 18px 12px;
 
-  display: grid;
+  display: flex;
   grid-template-columns: 1fr;
-  gap: 4px;
+  gap: 200px;
 
   justify-items: start; /* LEFT ALIGN */
   text-align: left;
@@ -135,6 +134,9 @@
   border-left: 2px solid rgba(0,245,255,0.2);
   padding-left: 14px;
 
+}
+.tm-mainhero{
+  display: grid;
 }
 
 .tm-heroTitle {
@@ -545,6 +547,7 @@
   padding: 0;
   text-align: left;
   cursor: pointer;
+  position: absolute;
 }
 
 .tm-itemTitleRight {
@@ -610,31 +613,65 @@
 .tm-priorityMarkMedium { box-shadow: 0 0 10px #facc15; }
 .tm-priorityMarkHigh { box-shadow: 0 0 10px #ef4444; }
 
-.tm-progress {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-}
 
+/* The Track (White) */
 .tm-progressBar {
-  height: 8px;
+  height: 10px;
+  background: #ffffff;
   border-radius: 999px;
-  background: #f4f4f5;
-  border: 0;
+  border: 1px solid #e4e4e7;
+  position: relative;
   overflow: hidden;
+  flex: 1;
 }
 
+/* The Slithering Snake */
 .tm-progressFill {
   height: 100%;
-  background: #09090b;
+  background-color: #656464; /* Black snake */
   border-radius: 999px;
+  transition: width 0.5s ease-in-out;
+  
+  /* The S-Wiggle Pattern */
+  /* This creates the illusion of curves inside the black bar */
+  background-image: radial-gradient(
+    circle at 50% 100%, 
+    rgba(255,255,255,0.15) 25%, 
+    transparent 26%
+  ), radial-gradient(
+    circle at 50% 0%, 
+    rgba(255,255,255,0.15) 25%, 
+    transparent 26%
+  );
+  background-size: 20px 100%;
+  background-position: 0 0, 10px 0;
+
+  /* The slither animation */
+  animation: slither-loop 0.8s linear infinite;
+}
+
+@keyframes slither-loop {
+  from {
+    background-position: 0 0, 10px 0;
+  }
+  to {
+    background-position: 20px 0, 30px 0;
+  }
+}
+
+.tm-progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  width: 100%;
 }
 
 .tm-progressMeta {
-  font-size: 12px;
-  color: #a1a1aa;
-  white-space: nowrap;
+  font-size: 11px;
+  color: #000000;
+  font-weight: bold;
+  font-family: monospace;
 }
 
 .tm-editExtras {
@@ -738,6 +775,9 @@
 
   margin: 0;
   }
+  .tm-logoImg {
+    width:10px,
+  }
   .tm-list {
   width: 100%;
   }
@@ -772,6 +812,6 @@
 
 @media (min-width: 640px) {
   .tm-date {
-    display: block;
+    color: white;
   }
 }

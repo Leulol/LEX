@@ -403,8 +403,13 @@ export default function App() {
           <div className="tm-titleRow">
             <div className="tm-titleBlock">
               <div className="tm-hero">
-                <h1 className="tm-heroTitle">NEXUS</h1>
-                <p className="tm-heroSub">Fucking Do IT</p>
+                <div className="tm-mainhero">
+                  <h1 className="tm-heroTitle">NEXUS</h1>
+                  <p className="tm-heroSub">Fucking Do IT</p>
+                </div>
+                <div className="tm-heromiddle">
+                  {/*<img className="tm-logoImg" style={{width: '100px'},{height: '100px'}} src="/lex-logo.png" alt="LEX logo"/>*/}{/*we will add a clock here*/} 
+                </div>
               </div>
               <TaskStats
                 totalCount={tasks.length}
