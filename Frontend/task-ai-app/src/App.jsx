@@ -269,6 +269,7 @@ export default function App() {
     }
     const current = tasks.find((t) => t.id === id);
     if (!current) return;
+    const nextComplete = !current.completed
 
     try {
       const data = await fetch_updateTask(id, { completed: !current.completed });
@@ -287,6 +288,9 @@ export default function App() {
       }
       setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
       refreshTasks();
+      if (nextCompleted) {
+        navigator.vibrate(50);
+      }
     } catch (error) {
       console.error("Failed to toggle task:", error);
     }
