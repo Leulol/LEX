@@ -111,7 +111,7 @@ export default function App() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks, hasLoaded]);
 
-  // Add task
+  // ------------------------Add task--------------------------------------
   async function createTask() {
   const nextTitle = title.trim();
   if (nextTitle === "") return;
