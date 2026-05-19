@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { plannerApi } from "../services/taskApi.js";
 
 function todayIso() {//Gets the date for line 22
   const d = new Date();//Make a new date and we will extracte the day using the getDate below
@@ -8,56 +9,81 @@ function todayIso() {//Gets the date for line 22
   return `${y}-${m}-${day}`;
 }
 
-function safeParseJson(text, fallback) {//Convertes the Javascript object to JSON for React
-  try {
-    const parsed = JSON.parse(text);
-    return parsed ?? fallback;//retruns the right side when its strictly null or unidentifed only(left side)
-  } catch {
-    return fallback;
-  }
-}
-
 export default function PlannerModule() {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(todayIso());
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    const raw = localStorage.getItem("planner_items");//Change this to backend
-    const loaded = safeParseJson(raw, []);
-    setItems(Array.isArray(loaded) ? loaded : []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await plannerApi.getItems();
+        const loaded = res?.data;
+        if (cancelled) return;
+        setItems(Array.isArray(loaded) ? loaded : []);
+      } catch (err) {
+        console.error("Failed to load planner items:", err);
+        if (cancelled) return;
+        setItems([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("planner_items", JSON.stringify(items));
-  }, [items]);
 
   const visible = useMemo(() => {
     const copy = Array.isArray(items) ? [...items] : [];
     return copy.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   }, [items]);
 
-  function addItem() {
+  async function addItem() {
     const nextTitle = title.trim();
     if (!nextTitle) return;
-    setItems((prev) => [
-      ...prev,//Copies the prev planned items
-      {
-        id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
-        title: nextTitle,
-        date,
-        done: false,
-      },
-    ]);
-    setTitle("");
+    try {
+      const res = await plannerApi.addItem({ title: nextTitle, date });
+      const created = res?.data;
+      if (created && typeof created === "object") {
+        setItems((prev) => [...(Array.isArray(prev) ? prev : []), created]);
+      } else {
+        const refreshed = await plannerApi.getItems();
+        setItems(Array.isArray(refreshed?.data) ? refreshed.data : []);
+      }
+      setTitle("");
+    } catch (err) {
+      console.error("Failed to add planner item:", err);
+    }
   }
 
-  function toggleDone(id) {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, done: !it.done } : it)));
+  async function toggleDone(id) {
+    const current = Array.isArray(items) ? items.find((it) => it.id === id) : null;
+    if (!current) return;
+    const nextDone = !current.done;
+    try {
+      const res = await plannerApi.updateItem(id, { done: nextDone });
+      const updated = res?.data;
+      if (updated && typeof updated === "object") {
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).map((it) => (it.id === id ? updated : it))
+        );
+      } else {
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).map((it) => (it.id === id ? { ...it, done: nextDone } : it))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update planner item:", err);
+    }
   }
 
-  function removeItem(id) {
-    setItems((prev) => prev.filter((it) => it.id !== id));//Kickes out the false statment whcih is the given id
+  async function removeItem(id) {
+    try {
+      await plannerApi.deleteItem(id);
+      setItems((prev) => (Array.isArray(prev) ? prev.filter((it) => it.id !== id) : []));
+    } catch (err) {
+      console.error("Failed to delete planner item:", err);
+    }
   }
 
   return (

@@ -1,46 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
-
-function safeParseJson(text, fallback) {
-  try {
-    const parsed = JSON.parse(text);
-    return parsed ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { journalApi } from "../services/taskApi.js";
 
 export default function JournalModule() {
   const [draft, setDraft] = useState("");
   const [entries, setEntries] = useState([]);
 
   useEffect(() => {
-    const raw = localStorage.getItem("journal_entries");
-    const loaded = safeParseJson(raw, []);
-    setEntries(Array.isArray(loaded) ? loaded : []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await journalApi.getEntries();
+        const loaded = res?.data?.entries;
+        if (cancelled) return;
+        setEntries(Array.isArray(loaded) ? loaded : []);
+      } catch (err) {
+        console.error("Failed to load journal entries:", err);
+        if (cancelled) return;
+        setEntries([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("journal_entries", JSON.stringify(entries));
-  }, [entries]);
 
   const sorted = useMemo(() => {
     const copy = Array.isArray(entries) ? [...entries] : [];
     return copy.sort((a, b) => Number(b.ts ?? 0) - Number(a.ts ?? 0));
   }, [entries]);
 
-  function addEntry() {
+  async function addEntry() {
     const text = draft.trim();
     if (!text) return;
     const ts = Date.now();
-    setEntries((prev) => [
-      { id: globalThis.crypto?.randomUUID?.() ?? String(ts), ts, text },
-      ...prev,
-    ]);
-    setDraft("");
+    try {
+      const res = await journalApi.addEntry({ text, ts });
+      const created = res?.data;
+      if (created && typeof created === "object") {
+        setEntries((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
+      } else {
+        const refreshed = await journalApi.getEntries();
+        setEntries(Array.isArray(refreshed?.data?.entries) ? refreshed.data.entries : []);
+      }
+      setDraft("");
+    } catch (err) {
+      console.error("Failed to add journal entry:", err);
+    }
   }
 
-  function removeEntry(id) {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+  async function removeEntry(id) {
+    try {
+      await journalApi.deleteEntry(id);
+      setEntries((prev) => (Array.isArray(prev) ? prev.filter((e) => e.id !== id) : []));
+    } catch (err) {
+      console.error("Failed to delete journal entry:", err);
+    }
   }
 
   return (

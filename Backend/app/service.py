@@ -129,7 +129,7 @@ def row_to_task(row):
     )
 
 
-# ---------------- CRUD OPERATIONS ---------------- #
+# ---------------- Tasks OPERATIONS ---------------- #
 
 def add_task(task):
     try:
@@ -410,4 +410,266 @@ def delete_completed_tasks():
         return success_response("All Completed Tasks Deleted")
     except sqlite3.Error as e:
         logger.error(f"Database error in delete_completed_tasks: {e}")
+        return error_response("Database error")
+    
+
+
+
+
+
+#__________________________________Journal__________________________________________________
+
+
+
+def validate_text(text):
+    if not text or text.strip() == "":
+        raise ValueError("Text can't be None or Empty")
+    return text
+def row_to_entry(row):
+    return {
+        "id": row[0],
+        "text": row[1],
+        "ts": row[2],
+        "created_at": row[3]
+    }
+def add_entry(text, ts):
+    try:
+        text = validate_text(text)
+        with database.db_lock:
+            database.cursor.execute(
+                "INSERT INTO journal_entries(text, ts) VALUES (?,?)",
+                (text, ts)
+            )
+            database.conn.commit()
+            
+            entry_id = database.cursor.lastrowid
+
+            # Fetch inserted row
+            database.cursor.execute(
+                "SELECT id, text, ts, created_at FROM journal_entries WHERE id = ?",
+                (entry_id,)
+            )
+            row = database.cursor.fetchone()
+
+        if not row:
+            logger.error(f"Failed to fetch newly created entry {entry_id}")
+            return error_response("Failed to fetch created task")
+
+        logger.info(f"Jorunal entry {entry_id} created")
+
+        return success_response(row_to_entry(row))
+    except ValueError as ve:
+        logger.warning(f"Validation error in Journal_entry: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in Journal_entry: {e}")
+        return error_response("Database error")
+    
+def fetch_entries(page=1, limit=10):
+    try:
+        validate_pagination(page, limit)
+
+        offset = (page - 1) * limit
+
+        with database.db_lock:
+            database.cursor.execute(
+                """
+                SELECT id, text, ts, created_at
+                FROM journal_entries
+                ORDER BY ts DESC
+                LIMIT ? OFFSET ?
+                """,
+                (limit, offset)
+            )
+
+            rows = database.cursor.fetchall()
+
+            # Total count
+            database.cursor.execute(
+                "SELECT COUNT(*) FROM journal_entries"
+            )
+
+            total = database.cursor.fetchone()[0]
+
+        logger.info(f"Fetched page {page} with {len(rows)} journals")
+
+        return success_response({
+            "entries": [row_to_entry(row) for row in rows],
+            "page": page,
+            "limit": limit,
+            "total": total
+        })
+
+    except ValueError as ve:
+        logger.warning(f"Pagination validation error: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in fetch_entries: {e}")
+        return error_response("Database error")
+
+def delete_entry(id):
+    try:
+        validate_id(id)
+        with database.db_lock:
+            database.cursor.execute(
+                "DELETE FROM journal_entries WHERE id=?",
+                (id,)
+            )    
+            database.conn.commit()
+
+            rowcount = database.cursor.rowcount
+            if rowcount > 0:
+                logger.info(f"Journal entry {id} deleted")
+                return success_response(True)
+            logger.warning(f"Journal entry {id} not found for deletion")
+            return error_response("Jorunal not found")
+
+    except ValueError as ve:
+        logger.warning(f"Validation error in delete_entry: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in delete_entry {id}: {e}")
+        return error_response("Database error")
+
+
+#__________________________________Planner__________________________________________________
+
+def validate_date(value):
+    if value is None:
+        raise ValueError("date is required")
+    if not isinstance(value, str):
+        raise ValueError("date must be a string")
+    value = value.strip()
+    if value == "":
+        raise ValueError("date cannot be empty")
+    # Expecting YYYY-MM-DD from the frontend <input type="date">
+    if len(value) != 10 or value[4] != "-" or value[7] != "-":
+        raise ValueError("date must be in YYYY-MM-DD format")
+    return value
+
+def validate_done(value):
+    if not isinstance(value, bool):
+        raise ValueError("done must be a boolean")
+    return value
+
+def row_to_planner_item(row):
+    return {
+        "id": row[0],
+        "title": row[1],
+        "date": row[2],
+        "done": bool(row[3]),
+        "created_at": row[4],
+        "updated_at": row[5],
+    }
+
+def add_planner_item(title, date, done=False):
+    try:
+        title = validate_title(title)
+        date = validate_date(date)
+        done = validate_done(bool(done))
+
+        with database.db_lock:
+            database.cursor.execute(
+                "INSERT INTO planner_items(title, date, done) VALUES (?,?,?)",
+                (title, date, int(done)),
+            )
+            database.conn.commit()
+
+            item_id = database.cursor.lastrowid
+            database.cursor.execute(
+                "SELECT id, title, date, done, created_at, updated_at FROM planner_items WHERE id = ?",
+                (item_id,),
+            )
+            row = database.cursor.fetchone()
+
+        if not row:
+            logger.error(f"Failed to fetch newly created planner item {item_id}")
+            return error_response("Failed to fetch created planner item")
+
+        logger.info(f"Planner item {item_id} created")
+        return success_response(row_to_planner_item(row))
+
+    except ValueError as ve:
+        logger.warning(f"Validation error in add_planner_item: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in add_planner_item: {e}")
+        return error_response("Database error")
+
+def fetch_planner_items():
+    try:
+        with database.db_lock:
+            database.cursor.execute(
+                """
+                SELECT id, title, date, done, created_at, updated_at
+                FROM planner_items
+                ORDER BY date ASC, id ASC
+                """
+            )
+            rows = database.cursor.fetchall()
+
+        return success_response([row_to_planner_item(r) for r in rows])
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in fetch_planner_items: {e}")
+        return error_response("Database error")
+
+def update_planner_item(item_id, done):
+    try:
+        validate_id(item_id)
+        done = validate_done(bool(done))
+
+        with database.db_lock:
+            database.cursor.execute(
+                "UPDATE planner_items SET done=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (int(done), item_id),
+            )
+            database.conn.commit()
+
+            if database.cursor.rowcount <= 0:
+                return error_response("Planner item not found")
+
+            database.cursor.execute(
+                "SELECT id, title, date, done, created_at, updated_at FROM planner_items WHERE id = ?",
+                (item_id,),
+            )
+            row = database.cursor.fetchone()
+
+        if not row:
+            return error_response("Planner item not found")
+
+        return success_response(row_to_planner_item(row))
+
+    except ValueError as ve:
+        logger.warning(f"Validation error in update_planner_item: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in update_planner_item {item_id}: {e}")
+        return error_response("Database error")
+
+def delete_planner_item(item_id):
+    try:
+        validate_id(item_id)
+        with database.db_lock:
+            database.cursor.execute(
+                "DELETE FROM planner_items WHERE id=?",
+                (item_id,),
+            )
+            database.conn.commit()
+
+            if database.cursor.rowcount > 0:
+                return success_response(True)
+            return error_response("Planner item not found")
+
+    except ValueError as ve:
+        logger.warning(f"Validation error in delete_planner_item: {ve}")
+        return error_response(str(ve))
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error in delete_planner_item {item_id}: {e}")
         return error_response("Database error")

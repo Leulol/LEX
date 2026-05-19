@@ -61,3 +61,20 @@ export const taskApi = {
 
 
 //___________________________________________Planner________________________________________
+
+
+//-------------------------------------------Journal----------------------------------------
+export const journalApi = {
+  addEntry: (data) => fetchJson("/journal", { method: "POST", body: JSON.stringify(data) }),
+  getEntries: () => fetchJson("/journal"),
+  deleteEntry: (id) => fetchJson(`/journal/${id}`, { method: "DELETE" }),
+};
+
+
+//-------------------------------------------Planner----------------------------------------
+export const plannerApi = {
+  addItem: (data) => fetchJson("/planner", { method: "POST", body: JSON.stringify(data) }),
+  getItems: () => fetchJson("/planner"),
+  updateItem: (id, data) => fetchJson(`/planner/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteItem: (id) => fetchJson(`/planner/${id}`, { method: "DELETE" }),
+};

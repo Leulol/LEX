@@ -21,7 +21,7 @@ app.add_middleware(
 
 
 # -------------------------
-# Pydantic Schemas to validate incoming request data by storing and changing the JSON to pyhton data.
+# Pydantic Schemas to validate incoming request data by storing and changing the JSON to python data.
 # -------------------------
 
 class TaskCreate(BaseModel):
@@ -48,11 +48,23 @@ class ReorderItem(BaseModel):
 class ReorderRequest(BaseModel):
     items: List[ReorderItem]
 
+class AddJournalEntry(BaseModel):
+    text: str
+    ts: int
+
+class PlannerItemCreate(BaseModel):
+    title: str
+    date: str
+
+class PlannerItemUpdate(BaseModel):
+    done: bool
+
 
 # -------------------------
 # Routes from the specific URL and when a commands is sent(POST/GET) from that URL it will go through here
 # -------------------------
 
+#---------------------------------------/tasks---------------------------------------------------
 @app.get("/tasks")
 def get_tasks():
     tasks = service.get_all_tasks()
@@ -129,3 +141,58 @@ def delete_completed_tasks():
     if not result:
         raise HTTPException(status_code=500, detail="Failed to delete completed tasks")
     return {"detail": "All Completed Tasks Deleted"}
+
+
+#-----------------------------------------Journal-------------------------------------------
+
+@app.post("/journal")
+def add_journal_entry(entry: AddJournalEntry):
+    result = service.add_entry(entry.text, entry.ts)
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail="Failed to add journal entry")
+    return result
+
+@app.get("/journal")
+def get_journal_entries():
+    result = service.fetch_entries()
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail="Failed to fetch journal entries")
+    return result
+
+@app.delete("/journal/{entry_id}")
+def delete_journal_entry(entry_id: int):
+    result = service.delete_entry(entry_id)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail="Journal entry not found")
+    return {"detail": "Journal entry deleted"}
+
+
+#-----------------------------------------Planner-------------------------------------------
+
+@app.post("/planner")
+def add_planner_item(item: PlannerItemCreate):
+    result = service.add_planner_item(item.title, item.date)
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail="Failed to add planner item")
+    return result
+
+@app.get("/planner")
+def get_planner_items():
+    result = service.fetch_planner_items()
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail="Failed to fetch planner items")
+    return result
+
+@app.patch("/planner/{item_id}")
+def update_planner_item(item_id: int, item: PlannerItemUpdate):
+    result = service.update_planner_item(item_id, item.done)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail="Planner item not found")
+    return result
+
+@app.delete("/planner/{item_id}")
+def delete_planner_item(item_id: int):
+    result = service.delete_planner_item(item_id)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail="Planner item not found")
+    return {"detail": "Planner item deleted"}

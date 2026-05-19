@@ -16,8 +16,10 @@ db_lock = threading.Lock()
 conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 cursor = conn.cursor()
 
-def init_db():    
-    cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
+def init_db():
+    #Task Tabels    
+    cursor.execute('''
+                CREATE TABLE IF NOT EXISTS tasks
                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
                     completed BOOLEAN NOT NULL,
@@ -27,6 +29,17 @@ def init_db():
                     order_mode TEXT NOT NULL DEFAULT 'priority',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    # Planner items table (simple per-item planner backing the frontend PlannerModule)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS planner_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            date TEXT NOT NULL,
+            done BOOLEAN NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     # Daily Plans table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS daily_plans (
@@ -41,6 +54,16 @@ def init_db():
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+    # Journal Entries table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS journal_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT NOT NULL,
+            ts INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
 
 
@@ -58,10 +81,12 @@ def _ensure_column(name, ddl):
     conn.commit()
 
 
-# Small migration for older databases
+# Ensure base schema exists before running migrations.
+init_db()
+
+# Small migration for older databases (tasks table)
 _ensure_column("priority", "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'")
 _ensure_column("subtasks", "ALTER TABLE tasks ADD COLUMN subtasks TEXT NOT NULL DEFAULT '[]'")
 _ensure_column("sort_order", "ALTER TABLE tasks ADD COLUMN sort_order INTEGER")
 _ensure_column("order_mode", "ALTER TABLE tasks ADD COLUMN order_mode TEXT NOT NULL DEFAULT 'priority'")
-
 
