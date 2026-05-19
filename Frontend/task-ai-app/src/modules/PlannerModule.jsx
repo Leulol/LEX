@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 
-function todayIso() {
-  const d = new Date();
+function todayIso() {//Gets the date for line 22
+  const d = new Date();//Make a new date and we will extracte the day using the getDate below
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-function safeParseJson(text, fallback) {
+function safeParseJson(text, fallback) {//Convertes the Javascript object to JSON for React
   try {
     const parsed = JSON.parse(text);
-    return parsed ?? fallback;
+    return parsed ?? fallback;//retruns the right side when its strictly null or unidentifed only(left side)
   } catch {
     return fallback;
   }
@@ -23,7 +23,7 @@ export default function PlannerModule() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    const raw = localStorage.getItem("planner_items");
+    const raw = localStorage.getItem("planner_items");//Change this to backend
     const loaded = safeParseJson(raw, []);
     setItems(Array.isArray(loaded) ? loaded : []);
   }, []);
@@ -41,7 +41,7 @@ export default function PlannerModule() {
     const nextTitle = title.trim();
     if (!nextTitle) return;
     setItems((prev) => [
-      ...prev,
+      ...prev,//Copies the prev planned items
       {
         id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
         title: nextTitle,
@@ -57,7 +57,7 @@ export default function PlannerModule() {
   }
 
   function removeItem(id) {
-    setItems((prev) => prev.filter((it) => it.id !== id));
+    setItems((prev) => prev.filter((it) => it.id !== id));//Kickes out the false statment whcih is the given id
   }
 
   return (

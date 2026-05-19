@@ -16,17 +16,32 @@ db_lock = threading.Lock()
 conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 cursor = conn.cursor()
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
-              (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                completed BOOLEAN NOT NULL,
-                priority TEXT NOT NULL DEFAULT 'medium',
-                subtasks TEXT NOT NULL DEFAULT '[]',
-                sort_order INTEGER,
-                order_mode TEXT NOT NULL DEFAULT 'priority',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
-conn.commit()
+def init_db():    
+    cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
+                (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    completed BOOLEAN NOT NULL,
+                    priority TEXT NOT NULL DEFAULT 'medium',
+                    subtasks TEXT NOT NULL DEFAULT '[]',
+                    sort_order INTEGER,
+                    order_mode TEXT NOT NULL DEFAULT 'priority',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    # Daily Plans table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_plans (
+           id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT UNIQUE NOT NULL,
+            morning_intention TEXT,
+            time_blocks TEXT DEFAULT '[]',
+            priority_focus TEXT DEFAULT '[]',
+            status TEXT DEFAULT 'draft',
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    conn.commit()
 
 
 def _get_task_columns():

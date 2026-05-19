@@ -16,77 +16,48 @@ export const API_BASE_URL = (() => {
   return `${protocol}//${host}:8000`;
 })();
 
-export async function fetchTasks() {
-  const response = await fetch(`${API_BASE_URL}/tasks`);
-  const data = await response.json();
-  return data;
+async function fetchJson(url, options = {}) {
+  const fullUrl = `${API_BASE_URL}${url}`;
+
+  let response;
+  try {
+    response = await fetch(fullUrl, {
+      headers: { "Content-Type": "application/json", ...options.headers },
+      ...options, // If the fetch function is to display some data like a POST
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Network error calling ${fullUrl}: ${message}`);
+  }
+
+  if (!response.ok) {
+    let detail = "";
+    try {
+      detail = await response.text();
+    } catch {
+      // ignore
+    }
+    const suffix = detail ? ` - ${detail}` : "";
+    throw new Error(`API error ${response.status} ${response.statusText} for ${fullUrl}${suffix}`);
+  }
+
+  // Some endpoints may respond with 204 No Content.
+  if (response.status === 204) return null;
+  return response.json();
 }
 
-export async function fetch_createTask(task) {
-  const payload =//where the tasks property are defined using an if statment befor pacing to the backend
-    typeof task === "string"
-      ? { title: task }//If line 27 is true
-      : {
-          title: task?.title,
-          priority: task?.priority,
-          subtasks: task?.subtasks,
-        };
-
-  const response = await fetch(`${API_BASE_URL}/tasks`, {//It waits till the backend return with a JSON
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
-  return data;
+export const taskApi = {
+  getTasks: () => fetchJson('/tasks'),
+  getTask: (id) => fetchJson(`/tasks/${id}`),
+  createTask: (data) => fetchJson('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  updateTask: (id, data) => fetchJson(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTask: (id) => fetchJson(`/tasks/${id}`, { method: 'DELETE' }),
+  deleteTasks: () => fetchJson('/tasks', {method: 'DELETE'}),
+  deleteCompletedTasks: () => fetchJson('/tasks/completed', {method: 'DELETE'}),
+  reorderTasks: (items) => fetchJson('/tasks/reorder', {method: 'PATCH', body : JSON.stringify({items})})
 }
 
-export async function fetch_deleteTask(id) {
-  const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-    method: "DELETE",
-  });
-  const data = await response.json();
-  return data;
-}
 
-export async function fetch_deleteAllTasks() {
-  const response = await fetch(`${API_BASE_URL}/tasks`, {
-    method: "DELETE",
-  });
-  const data = await response.json();
-  return data;
-}
 
-export async function fetch_deleteCompletedTasks() {
-  const response = await fetch(`${API_BASE_URL}/tasks/completed`, {
-    method: "DELETE",
-  });
-  const data = await response.json();
-  return data;
-}
 
-export async function fetch_updateTask(taskId, updates) {
-  const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(updates),
-  });
-  const data = await response.json();
-  return data;
-}
-
-export async function fetch_reorderTasks(items) {
-  const response = await fetch(`${API_BASE_URL}/tasks/reorder`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ items }),
-  });
-  const data = await response.json();
-  return data;
-}
+//___________________________________________Planner________________________________________

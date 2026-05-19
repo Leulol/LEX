@@ -85,7 +85,7 @@ export default function App() {
           </button>
         </div>
 
-        {activeModule === "tasks" ? <TasksModule inputRef={taskInputRef} /> : null}
+        {activeModule === "tasks" ? <TasksModule inputRef={taskInputRef} /> : null} {/*Need to make <> to refer to the imported function*/}
         {activeModule === "planner" ? <PlannerModule /> : null}
         {activeModule === "journal" ? <JournalModule /> : null}
       </main>

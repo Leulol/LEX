@@ -2,15 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import TaskFilters from "../components/TaskFilters.jsx";
 import TaskList from "../components/TaskList.jsx";
 import TaskStats from "../components/TaskStats.jsx";
-import {
-  fetch_createTask,
-  fetch_deleteAllTasks,
-  fetch_deleteCompletedTasks,
-  fetch_deleteTask,
-  fetch_reorderTasks,
-  fetch_updateTask,
-  fetchTasks,
-} from "../services/taskApi.js";
+import { API_BASE_URL, taskApi } from "../services/taskApi.js";
+
 
 function normalizeApiTask(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -53,6 +46,7 @@ export default function TasksModule({ inputRef }) {
 
   const [tasks, setTasks] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -61,10 +55,12 @@ export default function TasksModule({ inputRef }) {
 
   async function refreshTasks() {
     try {
-      const data = await fetchTasks();
-      setTasks(normalizeApiTasks(data?.data?.tasks));
-    } catch (error) {
-      console.error("Failed to refresh tasks: ", error);
+      const data = await taskApi.getTasks();
+      if (data.success) setTasks(normalizeApiTasks(data?.data?.tasks));
+      setApiError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setApiError((prev) => (prev === message ? prev : message));
     }
   }
 
@@ -88,6 +84,7 @@ export default function TasksModule({ inputRef }) {
     async function tick() {
       if (cancelled) return;
       if (document.visibilityState !== "visible") return;
+      if (apiError) return;
       await refreshTasks();
     }
 
@@ -96,7 +93,7 @@ export default function TasksModule({ inputRef }) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [hasLoaded]);
+  }, [hasLoaded, apiError]);
 
   useEffect(() => {
     if (!hasLoaded) return;
@@ -108,7 +105,7 @@ export default function TasksModule({ inputRef }) {
     if (nextTitle === "") return;
 
     try {
-      const data = await fetch_createTask({
+      const data = await taskApi.createTask({
         title: nextTitle,
         priority,
         subtasks: [],
@@ -142,7 +139,7 @@ export default function TasksModule({ inputRef }) {
       return;
     }
     try {
-      const data = await fetch_deleteTask(id);
+      const data = await taskApi.deleteTask(id);
       if (data.success === false) {
         console.error(data.error);
         return;
@@ -159,7 +156,7 @@ export default function TasksModule({ inputRef }) {
     const ok = confirm("Delete all Tasks?");
     if (!ok) return;
     try {
-      const data = await fetch_deleteAllTasks();
+      const data = await taskApi.deleteTasks();
       if (data.success === false) {
         console.error(data.error);
         return;
@@ -178,7 +175,7 @@ export default function TasksModule({ inputRef }) {
     if (!ok) return;
 
     try {
-      const data = await fetch_deleteCompletedTasks();
+      const data = await taskApi.deleteCompletedTasks();
       if (data.success === false) {
         console.error(data.error);
         return;
@@ -217,7 +214,7 @@ export default function TasksModule({ inputRef }) {
     if (next === "") return;
 
     try {
-      const data = await fetch_updateTask(id, {
+      const data = await taskApi.updateTask(id, {
         title: next,
         priority: editingPriority,
         subtasks: editingSubtasks,
@@ -255,7 +252,7 @@ export default function TasksModule({ inputRef }) {
     const nextCompleted = !current.completed;
 
     try {
-      const data = await fetch_updateTask(id, { completed: nextCompleted });
+      const data = await taskApi.updateTask(id, { completed: nextCompleted });
       if (data?.success === false) {
         console.error(data.error);
         return;
@@ -339,7 +336,7 @@ export default function TasksModule({ inputRef }) {
         .filter((id) => Number.isFinite(id))
         .map((id, idx) => ({ id, sort_order: idx }));
 
-      const data = await fetch_reorderTasks(items);
+      const data = await taskApi.reorderTasks(items);
       if (data?.success === false) {
         console.error(data.error);
         return;
@@ -356,6 +353,15 @@ export default function TasksModule({ inputRef }) {
         <h2 className="tm-moduleTitle">TO DO LIST</h2>
         <p className="tm-moduleSub">Tasks that must get done.</p>
       </div>
+
+      {apiError ? (
+        <div className="tm-empty" role="status">
+          Backend unreachable at {API_BASE_URL}. {apiError}{" "}
+          <button className="tm-btn tm-btnPrimary" type="button" onClick={refreshTasks}>
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <div className="tm-titleRow">
         <div className="tm-titleBlock">
