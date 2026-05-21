@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import TaskFilters from "../components/TaskFilters.jsx";
 import TaskList from "../components/TaskList.jsx";
 import TaskStats from "../components/TaskStats.jsx";
+import AddTaskWidget from "../components/AddTaskWidget.jsx";
 import { API_BASE_URL, taskApi } from "../services/taskApi.js";
 
 
@@ -53,6 +54,9 @@ export default function TasksModule({ inputRef }) {
   const [editingPriority, setEditingPriority] = useState("medium");
   const [editingSubtasks, setEditingSubtasks] = useState([]);
 
+  const makeSubtaskCid = () =>
+    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
   async function refreshTasks() {
     try {
       const data = await taskApi.getTasks();
@@ -102,7 +106,7 @@ export default function TasksModule({ inputRef }) {
 
   async function createTask() {
     const nextTitle = title.trim();
-    if (nextTitle === "") return;
+    if (nextTitle === "") return false;
 
     try {
       const data = await taskApi.createTask({
@@ -113,23 +117,23 @@ export default function TasksModule({ inputRef }) {
 
       if (data.success === false) {
         console.error(data.error);
-        return;
+        return false;
       }
 
       const newTask = normalizeApiTask(data?.data || data);
       if (!newTask) {
         console.error("Unexpected task payload from server:", data);
-        return;
+        return false;
       }
 
       setTasks((prev) => [...prev, newTask]);
 
       setTitle("");
-      setPriority("medium");
-      inputRef?.current?.focus();
       refreshTasks();
+      return true;
     } catch (error) {
       console.error("Failed to add task:", error);
+      return false;
     }
   }
 
@@ -195,7 +199,14 @@ export default function TasksModule({ inputRef }) {
     setEditingId(task.id);
     setEditingTitle(task.title);
     setEditingPriority(task.priority ?? "medium");
-    setEditingSubtasks(Array.isArray(task.subtasks) ? task.subtasks : []);
+    const raw = Array.isArray(task.subtasks) ? task.subtasks : [];
+    setEditingSubtasks(
+      raw.map((s) => ({
+        _cid: s?._cid ?? makeSubtaskCid(),
+        title: (s?.title ?? "").toString(),
+        completed: Boolean(s?.completed),
+      }))
+    );
   }
 
   function cancelEditing() {
@@ -214,10 +225,15 @@ export default function TasksModule({ inputRef }) {
     if (next === "") return;
 
     try {
+      const cleanedSubtasks = (Array.isArray(editingSubtasks) ? editingSubtasks : []).map((s) => ({
+        title: (s?.title ?? "").toString(),
+        completed: Boolean(s?.completed),
+      }));
+
       const data = await taskApi.updateTask(id, {
         title: next,
         priority: editingPriority,
-        subtasks: editingSubtasks,
+        subtasks: cleanedSubtasks,
       });
       if (data?.success === false) {
         console.error(data.error);
@@ -397,32 +413,14 @@ export default function TasksModule({ inputRef }) {
       </div>
 
       <div className="tm-topInputs">
-        <div className="tm-inputRow">
-          <input
-            className="tm-input"
-            ref={inputRef}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Add a task..."
-            aria-label="New task title"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") createTask();
-            }}
-          />
-          <select
-            className="tm-input tm-select"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            aria-label="New task priority"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-          <button className="tm-btn tm-btnPrimary" onClick={createTask} type="button">
-            Add
-          </button>
-        </div>
+        <AddTaskWidget
+          title={title}
+          priority={priority}
+          onTitleChange={setTitle}
+          onPriorityChange={setPriority}
+          onCreate={createTask}
+          inputRef={inputRef}
+        />
 
         <input
           className="tm-input tm-inputSearch"

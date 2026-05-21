@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import SubtaskList from "./SubtaskList.jsx";
 
 export default function TaskItem({
   task,
@@ -35,17 +36,18 @@ export default function TaskItem({
 
   const priorityLabel = task.priority === "high" ? "High" : task.priority === "low" ? "Low" : "Medium";
 
-  const priorityMarkClass =
-    task.priority === "high"
-      ? "tm-priorityMark tm-priorityMarkHigh"
-      : task.priority === "low"
-        ? "tm-priorityMark tm-priorityMarkLow"
-        : "tm-priorityMark tm-priorityMarkMedium";
+  const priorityDot =
+    task.priority === "high" ? "#ef4444" : task.priority === "low" ? "#22c55e" : "#f59e0b";
 
   function addSubtask() {
     const t = newSubtaskTitle.trim();
     if (t === "") return;
-    const next = [...(Array.isArray(editingSubtasks) ? editingSubtasks : []), { title: t, completed: false }];
+    const cid =
+      globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const next = [
+      ...(Array.isArray(editingSubtasks) ? editingSubtasks : []),
+      { _cid: cid, title: t, completed: false },
+    ];
     onEditingSubtasksChange(next);
     setNewSubtaskTitle("");
   }
@@ -57,8 +59,6 @@ export default function TaskItem({
       ref={sortable.setNodeRef}
       style={style}
     >
-      <span className={priorityMarkClass} aria-hidden="true" />
-
       <button
         className="tm-dragHandle"
         type="button"
@@ -163,7 +163,19 @@ export default function TaskItem({
               </div>
 
               <div className="tm-itemTitleRight">
-                <span className={`tm-priority tm-priority${priorityLabel}`}>
+                <span className="tm-priority">
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      background: priorityDot,
+                      display: "inline-block",
+                      marginRight: 6,
+                      transform: "translateY(-1px)",
+                    }}
+                  />
                   {priorityLabel}
                 </span>
                 <span className={isEditing ? "tm-caret tm-caretOpen" : "tm-caret"}>
@@ -179,33 +191,7 @@ export default function TaskItem({
             <div className="tm-subtasks">
               <div className="tm-subtasksHead">Subtasks</div>
 
-              {(Array.isArray(editingSubtasks) ? editingSubtasks : []).map((s, idx) => (
-                <div className="tm-subtaskRow" key={`${idx}-${s?.title ?? ""}`}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(s?.completed)}
-                    onChange={() => {
-                      const next = (Array.isArray(editingSubtasks) ? editingSubtasks : []).map((x, i) =>
-                        i === idx ? { ...x, completed: !Boolean(x?.completed) } : x
-                      );
-                      onEditingSubtasksChange(next);
-                    }}
-                  />
-                  <span className={s?.completed ? "tm-subtaskText tm-subtaskDone" : "tm-subtaskText"}>
-                    {s?.title ?? ""}
-                  </span>
-                  <button
-                    className="tm-btn tm-btnGhost tm-btnTight"
-                    type="button"
-                    onClick={() => {
-                      const next = (Array.isArray(editingSubtasks) ? editingSubtasks : []).filter((_, i) => i !== idx);
-                      onEditingSubtasksChange(next);
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+              <SubtaskList subtasks={editingSubtasks} onChange={onEditingSubtasksChange} />
 
               <div className="tm-subtaskAdd">
                 <input
