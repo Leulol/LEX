@@ -19,6 +19,7 @@ export default function TaskItem({
   onEditingSubtasksChange,
 }) {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const sortable = useSortable({ id: task.id });
   const style = {
     transform: CSS.Transform.toString(sortable.transform),
@@ -39,6 +40,22 @@ export default function TaskItem({
   const priorityDot =
     task.priority === "high" ? "#ef4444" : task.priority === "low" ? "#22c55e" : "#f59e0b";
 
+  const hasEditingChanges = useMemo(() => {
+    if (!isEditing) return false;
+
+    const normalizeSubtasks = (items) =>
+      (Array.isArray(items) ? items : []).map((s) => ({
+        title: String(s?.title ?? ""),
+        completed: Boolean(s?.completed),
+      }));
+
+    return (
+      String(editingTitle ?? "") !== String(task.title ?? "") ||
+      editingPriority !== task.priority ||
+      JSON.stringify(normalizeSubtasks(editingSubtasks)) !== JSON.stringify(normalizeSubtasks(task.subtasks))
+    );
+  }, [editingPriority, editingSubtasks, editingTitle, isEditing, task.priority, task.subtasks, task.title]);
+
   function addSubtask() {
     const t = newSubtaskTitle.trim();
     if (t === "") return;
@@ -50,6 +67,12 @@ export default function TaskItem({
     ];
     onEditingSubtasksChange(next);
     setNewSubtaskTitle("");
+    setIsAddingSubtask(false);
+  }
+
+  function cancelAddSubtask() {
+    setNewSubtaskTitle("");
+    setIsAddingSubtask(false);
   }
 
   return (
@@ -193,27 +216,38 @@ export default function TaskItem({
 
               <SubtaskList subtasks={editingSubtasks} onChange={onEditingSubtasksChange} />
 
-              <div className="tm-subtaskAdd">
-                <input
-                  className="tm-input tm-inputInline"
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  placeholder="Add subtask..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addSubtask();
-                  }}
-                />
-                <button className="tm-btn tm-btnGhost" type="button" onClick={addSubtask}>
+              {isAddingSubtask ? (
+                <div className="tm-subtaskAdd">
+                  <input
+                    className="tm-input tm-inputInline"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Add subtask..."
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addSubtask();
+                      if (e.key === "Escape") cancelAddSubtask();
+                    }}
+                  />
+                  <button className="tm-btn tm-btnGhost" type="button" onClick={addSubtask}>
+                    Add
+                  </button>
+                  <button className="tm-btn tm-btnGhost tm-btnTight" type="button" onClick={cancelAddSubtask}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button className="tm-btn tm-btnGhost tm-subtaskAddButton" type="button" onClick={() => setIsAddingSubtask(true)}>
                   Add
                 </button>
-              </div>
+              )}
             </div>
           ) : null}
         </div>
       </div>
 
       <div className="tm-itemActions" aria-label="Task actions">
-        {isEditing ? (
+        {isEditing && hasEditingChanges ? (
           <>
             <button className="tm-newBtn" onClick={() => onCommitEdit(task.id)} type="button" title="Save edit">
               Save
@@ -222,11 +256,11 @@ export default function TaskItem({
               Cancel
             </button>
           </>
-        ) : (
-          <button className="tm-iconBtn tm-iconBtnDanger" onClick={() => onDelete(task.id)} type="button" title="Delete task">
+        ) : !isEditing ? (
+          <button className="tm-iconBtn tm-iconBtnDanger" style={{color: "black"}} onClick={() => onDelete(task.id)} type="button" title="Delete task">
             🗑
           </button>
-        )}
+        ) : null}
       </div>
     </li>
   );

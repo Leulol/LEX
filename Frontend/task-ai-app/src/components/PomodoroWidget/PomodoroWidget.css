@@ -1,0 +1,319 @@
+.tm-pomo {
+  --tm-pomo-surface: color-mix(in srgb, var(--tm-surface-bg) 60%, var(--bg, #fff) 40%);
+  --tm-pomo-border: var(--tm-surface-border);
+  --tm-pomo-text: var(--tm-surface-text);
+  --tm-pomo-muted: var(--tm-hero-sub);
+  --tm-pomo-shadow: var(--tm-shadow, 0 12px 40px rgba(0, 0, 0, 0.18));
+  --tm-pomo-ringTrack: var(--tm-border);
+
+  position: sticky;
+  bottom: 14px;
+  z-index: 5;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tm-pomoPill {
+  width: 100%;
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 10px 12px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--tm-pomo-border);
+  background: var(--tm-pomo-surface);
+  color: var(--tm-pomo-text);
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.tm-pomoPillOpen {
+  border-color: color-mix(in srgb, var(--tm-pomo-border) 60%, #D85A30 40%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.tm-pomoPillLeft {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.tm-pomoPillTime {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tm-pomoPillIcon {
+  display: grid;
+  place-items: center;
+}
+
+.tm-pomoClockIcon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.tm-pomoPillMode {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--tm-pomo-muted);
+}
+
+.tm-pomoPillRight {
+  display: flex;
+  align-items: center;
+}
+
+.tm-pomoPillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tm-pomo-border);
+}
+
+.tm-pomoPillDotOn {
+  background: #D85A30;
+}
+
+.tm-pomoPillBar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 6px;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-pomo-border) 40%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tm-pomoPillBarFill {
+  height: 100%;
+  display: block;
+  background: #D85A30;
+  border-radius: 999px;
+}
+
+.tm-pomoPopover {
+  position: absolute;
+  left: calc(100% + 12px);
+  bottom: 0;
+
+  width: 320px;
+  max-width: min(360px, 92vw);
+
+  background: var(--tm-pomo-surface);
+  border: 1px solid var(--tm-pomo-border);
+  color: var(--tm-pomo-text);
+  border-radius: 14px;
+  box-shadow: var(--tm-pomo-shadow);
+  backdrop-filter: blur(10px);
+
+  padding: 12px;
+  box-sizing: border-box;
+  z-index: 50;
+}
+
+.tm-pomoFloating {
+  position: static;
+}
+
+.tm-pomoFloating .tm-pomoPill {
+  width: auto;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
+.tm-pomoFloating .tm-pomoPillLeft {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.tm-pomoFloating .tm-pomoPillMode,
+.tm-pomoFloating .tm-pomoPillBar {
+  display: none;
+}
+
+.tm-pomoFloating .tm-pomoPillTime {
+  font-size: 12px;
+}
+
+.tm-pomoFloating .tm-pomoPopover {
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: auto;
+  top: calc(100% + 10px);
+  width: min(360px, calc(100vw - 24px));
+  max-width: min(360px, calc(100vw - 24px));
+}
+
+.tm-pomoModeRow {
+  display: flex;
+  gap: 8px;
+}
+
+.tm-pomoModeBtn {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--tm-pomo-border);
+  background: transparent;
+  color: var(--tm-pomo-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tm-pomoModeBtn:hover {
+  background: color-mix(in srgb, var(--tm-pomo-border) 18%, transparent);
+}
+
+.tm-pomoModeBtnActive {
+  border-color: color-mix(in srgb, #D85A30 60%, var(--tm-pomo-border));
+  background: color-mix(in srgb, #D85A30 14%, transparent);
+}
+
+.tm-pomoRingWrap {
+  margin: 14px 0 10px;
+  position: relative;
+
+  display: grid;
+  place-items: center;
+}
+
+.tm-pomoRing {
+  display: block;
+}
+
+.tm-pomoRingText {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tm-pomoRingTime {
+  font-variant-numeric: tabular-nums;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.tm-pomoRingLabel {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--tm-pomo-muted);
+}
+
+.tm-pomoControls {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tm-pomoCtrlBtn {
+  flex: 1;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--tm-pomo-border);
+  background: transparent;
+  color: var(--tm-pomo-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tm-pomoCtrlBtn:hover {
+  background: color-mix(in srgb, var(--tm-pomo-border) 18%, transparent);
+}
+
+.tm-pomoCtrlBtnPrimary {
+  border-color: color-mix(in srgb, #D85A30 55%, var(--tm-pomo-border));
+  background: color-mix(in srgb, #D85A30 14%, transparent);
+}
+
+.tm-pomoDots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.tm-pomoDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--tm-pomo-border) 70%, transparent);
+}
+
+.tm-pomoDotOn {
+  background: #D85A30;
+}
+
+.tm-pomoFooter {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--tm-pomo-border) 70%, transparent);
+}
+
+.tm-pomoFooterLabel {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tm-pomo-muted);
+}
+
+.tm-pomoFooterTask {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-pomoTaskSelect {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-pomo-text);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--tm-pomo-border) 70%, transparent);
+  border-radius: 10px;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.tm-pomoTaskSelect:focus {
+  border-color: color-mix(in srgb, #D85A30 55%, var(--tm-pomo-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, #D85A30 18%, transparent);
+}
+
+@media (max-width: 720px) {
+  .tm-pomoPopover {
+    left: 0;
+    bottom: calc(100% + 12px);
+    width: 100%;
+    max-width: 92vw;
+  }
+}

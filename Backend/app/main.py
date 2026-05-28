@@ -71,6 +71,23 @@ def get_tasks():
     return tasks
 
 
+@app.patch("/tasks/reorder")
+def reorder_tasks(req: ReorderRequest):
+    payload = [i.model_dump() for i in req.items]
+    result = service.reorder_tasks(payload)
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to reorder tasks")
+    return result
+
+
+@app.delete("/tasks/completed")
+def delete_completed_tasks():
+    result = service.delete_completed_tasks()
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to delete completed tasks")
+    return {"detail": "All Completed Tasks Deleted"}
+
+
 @app.get("/tasks/{task_id}")
 def get_task(task_id: int):
     task = service.get_task(task_id)
@@ -110,16 +127,6 @@ def update_task(task_id: int, task: TaskUpdate):
         raise HTTPException(status_code=404, detail="Task not found or invalid input")
     return updated_task
 
-
-@app.patch("/tasks/reorder")
-def reorder_tasks(req: ReorderRequest):
-    payload = [i.model_dump() for i in req.items]
-    result = service.reorder_tasks(payload)
-    if not result:
-        raise HTTPException(status_code=500, detail="Failed to reorder tasks")
-    return result
-
-
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
     result = service.delete_task(task_id)
@@ -134,13 +141,6 @@ def delete_all_tasks():
     if not result:
         raise HTTPException(status_code=500, detail="Failed to delete all tasks")
     return {"detail": "All tasks deleted"}
-
-@app.delete("/tasks/completed")
-def delete_completed_tasks():
-    result = service.delete_completed_tasks()
-    if not result:
-        raise HTTPException(status_code=500, detail="Failed to delete completed tasks")
-    return {"detail": "All Completed Tasks Deleted"}
 
 
 #-----------------------------------------Journal-------------------------------------------

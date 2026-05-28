@@ -39,7 +39,7 @@ function normalizeApiTasks(raw) {
   return raw.map(normalizeApiTask).filter(Boolean);
 }
 
-export default function TasksModule({ inputRef }) {
+export default function TasksModule({ inputRef, onPomodoroTaskChange, onTasksChange }) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("medium"); // low | medium | high
   const [query, setQuery] = useState("");
@@ -53,6 +53,28 @@ export default function TasksModule({ inputRef }) {
   const [editingTitle, setEditingTitle] = useState("");
   const [editingPriority, setEditingPriority] = useState("medium");
   const [editingSubtasks, setEditingSubtasks] = useState([]);
+
+  const currentTaskName = useMemo(() => {
+    if (editingId) return String(editingTitle || "").trim();
+    const firstActive = (Array.isArray(tasks) ? tasks : []).find((t) => !t?.completed);
+    if (firstActive?.title) return String(firstActive.title).trim();
+    const first = Array.isArray(tasks) ? tasks[0] : null;
+    return String(first?.title || "").trim();
+  }, [tasks, editingId, editingTitle]);
+
+  useEffect(() => {
+    if (typeof onPomodoroTaskChange !== "function") return;
+    onPomodoroTaskChange(currentTaskName);
+  }, [currentTaskName, onPomodoroTaskChange]);
+
+  useEffect(() => {
+    if (typeof onTasksChange !== "function") return;
+    const active = (Array.isArray(tasks) ? tasks : [])
+      .filter((t) => t && typeof t === "object" && !t.completed)
+      .map((t) => ({ id: t.id, title: String(t.title ?? "") }))
+      .filter((t) => Number.isFinite(t.id) && t.title.trim() !== "");
+    onTasksChange(active);
+  }, [tasks, onTasksChange]);
 
   const makeSubtaskCid = () =>
     globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;

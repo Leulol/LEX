@@ -1,0 +1,260 @@
+.tm-sidebar {
+  width: 56px;
+  flex: 0 0 56px;
+  height: 100svh;
+  height: 100dvh;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+
+  padding: calc(10px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) 10px
+    calc(8px + env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+
+  background: var(--tm-surface-bg);
+  border-right: 1px solid var(--tm-surface-border);
+  color: var(--tm-surface-text);
+  overflow: visible;
+}
+
+.tm-sidebarExpanded {
+  width: 220px;
+  flex: 0 0 220px;
+}
+
+.tm-sidebarToggle {
+  appearance: none;
+  border: 1px solid var(--tm-surface-border);
+  background: color-mix(in srgb, var(--tm-surface-bg) 82%, transparent);
+  color: var(--tm-surface-text);
+  width: 40px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.tm-sidebarToggle:hover {
+  background: color-mix(in srgb, var(--tm-surface-text) 8%, transparent);
+}
+
+.tm-sidebarToggleIcon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  transition: transform 160ms ease;
+  transform: rotate(0deg);
+}
+
+.tm-sidebarToggleIconExpanded {
+  transform: rotate(180deg);
+}
+
+.tm-sidebarTop {
+  display: grid;
+  gap: 6px;
+}
+
+.tm-sidebarItem {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 6px 0 4px;
+  border-radius: 12px;
+
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.tm-sidebarItem:hover {
+  background: color-mix(in srgb, var(--tm-surface-text) 8%, transparent);
+}
+
+.tm-sidebarItemActive {
+  background: color-mix(in srgb, var(--accent-bg) 55%, transparent);
+}
+
+.tm-sidebarPillWrap {
+  display: grid;
+  place-items: center;
+}
+
+.tm-sidebarPill {
+  width: 40px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+}
+
+.tm-sidebarPillActive {
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 1px var(--accent-border);
+  color: var(--accent);
+}
+
+.tm-sidebarIcon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.tm-sidebarLabel {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+.tm-sidebarBottom {
+  margin-top: auto;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Pomodoro: squeeze for 56px rail while keeping popover usable. */
+.tm-sidebar .tm-pomo {
+  position: relative;
+  bottom: auto;
+}
+
+.tm-sidebar .tm-pomoPill {
+  padding: 8px 8px;
+  border-radius: 12px;
+  justify-content: center;
+}
+
+.tm-sidebar .tm-pomoPillLeft {
+  align-items: center;
+}
+
+.tm-sidebar .tm-pomoPillMode,
+.tm-sidebar .tm-pomoPillBar {
+  display: none;
+}
+
+.tm-sidebar .tm-pomoPillTime {
+  font-size: 12px;
+}
+
+.tm-sidebar .tm-pomoClockIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.tm-sidebar .tm-pomoPopover {
+  left: calc(100% + 10px);
+  bottom: 0;
+  width: min(280px, calc(100vw - 56px - 16px));
+  max-width: min(280px, calc(100vw - 56px - 16px));
+  z-index: 50;
+}
+
+/* Expanded rail: show text more like a phone-friendly drawer. */
+.tm-sidebarExpanded .tm-sidebarTop {
+  margin-top: 2px;
+}
+
+.tm-sidebarExpanded .tm-sidebarItem {
+  grid-template-columns: auto 1fr;
+  justify-items: start;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.tm-sidebarExpanded .tm-sidebarLabel {
+  font-size: 13px;
+  line-height: 1.1;
+  opacity: 0.95;
+}
+
+.tm-sidebarExpanded .tm-sidebarPill {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.tm-sidebarExpanded .tm-sidebarBottom .tm-pomoPill {
+  border-radius: 12px;
+  justify-content: space-between;
+}
+
+.tm-sidebarExpanded .tm-pomoPillMode,
+.tm-sidebarExpanded .tm-pomoPillBar {
+  display: block;
+}
+
+.tm-sidebarExpanded .tm-pomoPillLeft {
+  align-items: flex-start;
+}
+
+.tm-sidebarExpanded .tm-pomoPillTime {
+  font-size: 14px;
+}
+
+.tm-sidebarExpanded .tm-pomoPopover {
+  left: 0;
+  bottom: calc(100% + 10px);
+  width: min(340px, calc(100vw - 16px));
+  max-width: min(340px, calc(100vw - 16px));
+}
+
+/* iPhone-ish small screens: default to expanded-friendly spacing. */
+@media (max-width: 430px) {
+  .tm-sidebarToggle {
+    width: 44px;
+    height: 40px;
+    border-radius: 14px;
+  }
+
+  /* Avoid double close controls on mobile (use the top-left menu button). */
+  .tm-sidebarToggle {
+    display: none;
+  }
+
+  /* On iPhone-ish widths: hide sidebar when collapsed to give content room.
+     Expanded becomes an overlay drawer. */
+  .tm-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100dvh;
+    width: 260px;
+    flex: 0 0 auto;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+  }
+
+  .tm-sidebarExpanded {
+    transform: translateX(0);
+  }
+
+  /* Prevent the top nav items from sitting under the phone menu button area. */
+  .tm-sidebarExpanded .tm-sidebarTop {
+    padding-top: calc(54px + env(safe-area-inset-top, 0px));
+  }
+
+  /* When collapsed, don't reserve space in the flex row. */
+  .tm-sidebar:not(.tm-sidebarExpanded) {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right: 0;
+    overflow: hidden;
+    box-shadow: none;
+  }
+}
